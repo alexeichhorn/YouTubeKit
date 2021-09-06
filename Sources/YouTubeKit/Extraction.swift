@@ -64,7 +64,7 @@ class Extraction {
         }
         
         var stack = [html.first!]
-        var i = 1
+        var i = html.index(after: html.startIndex)
         
         let contextClosers: [Character: Character] = [
             "{": "}",
@@ -72,7 +72,8 @@ class Extraction {
             "\"": "\""
         ]
         
-        while i < html.count {
+        let endIndex = html.endIndex
+        while i <= endIndex {
             guard let currentContext = stack.last else {
                 break
             }
@@ -81,14 +82,14 @@ class Extraction {
             // current context gets closed
             if currentChar == contextClosers[currentContext] {
                 _ = stack.popLast()
-                i += 1
+                i = html.index(after: i)
                 continue
             }
             
             // strings require special context handling because they can contain context openers and closers
             if currentContext == "\"" {
                 if currentChar == "\\" {
-                    i += 2
+                    i = html.index(i, offsetBy: 2)
                     continue
                 }
             } else {
@@ -98,7 +99,7 @@ class Extraction {
                 }
             }
             
-            i += 1
+            i = html.index(after: i)
         }
         
         let fullObject = html.substring(to: i)
