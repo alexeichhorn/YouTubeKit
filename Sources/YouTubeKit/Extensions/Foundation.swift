@@ -58,6 +58,34 @@ extension String {
     
 }
 
+extension Collection {
+    
+    /// - returns: element where calculated property is maximum
+    func max<T: Comparable>(byProperty property: (Element) throws -> T) rethrows -> Element? {
+        let mapped = try map({ ($0, try property($0)) })
+        return mapped.max(by: { $0.1 < $1.1 })?.0
+    }
+    
+    /// - returns: element where parameter given in `keyPath` is maximum
+    func max<T: Comparable>(by keyPath: KeyPath<Element, T>) -> Element? {
+        let mapped = map { ($0, $0[keyPath: keyPath]) }
+        return mapped.max(by: { $0.1 < $1.1 })?.0
+    }
+    
+    /// - returns: element where calculated property is minimum
+    func min<T: Comparable>(byProperty property: (Element) throws -> T) rethrows -> Element? {
+        let mapped = try map({ ($0, try property($0)) })
+        return mapped.min(by: { $0.1 < $1.1 })?.0
+    }
+    
+    /// - returns: element where parameter given in `keyPath` is minimum
+    func min<T: Comparable>(by keyPath: KeyPath<Element, T>) -> Element? {
+        let mapped = map { ($0, $0[keyPath: keyPath]) }
+        return mapped.min(by: { $0.1 < $1.1 })?.0
+    }
+    
+}
+
 extension Collection where Indices.Iterator.Element == Index {
     
     /// Returns the element at the specified index if it is within bounds, otherwise nil.

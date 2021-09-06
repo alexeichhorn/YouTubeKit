@@ -170,7 +170,7 @@ class Extraction {
             i = html.index(after: i)
         }
         
-        let fullObject = html.substring(to: i)
+        let fullObject = String(html[..<i])
         return fullObject
     }
     

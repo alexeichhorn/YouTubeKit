@@ -26,8 +26,11 @@ final class YouTubeKitTests: XCTestCase {
         let youtube = YouTube(videoID: "9bZkp7q19f0")
         do {
             let streams = try await youtube.streams
-            print(streams)
-            XCTAssert(streams.fmtStreams.count > 0)
+            XCTAssert(streams.count > 0)
+            
+            let audioOnlyStreams = streams.filterAudioOnly()
+            print(audioOnlyStreams)
+            
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
