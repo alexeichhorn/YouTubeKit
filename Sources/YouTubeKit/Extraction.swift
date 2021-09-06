@@ -17,6 +17,74 @@ class Extraction {
         return regex.firstMatch(in: url, group: 1)?.content
     }
     
+    class func isAgeRestricted(watchHTML: String) -> Bool {
+        let regex = NSRegularExpression(#"og:restrictions:age"#)
+        return regex.firstMatch(in: watchHTML, group: 0) != nil
+    }
+    
+    
+    /// Get the base JavaScript url
+    class func jsURL(html: String) throws -> String {
+        let baseURL = try (try? getYTPlayerConfig(html: html).assets?.js)
+                           ?? (try getYTPlayerJS(html: html))
+        return "https://youtube.com" + baseURL
+    }
+    
+    /// Get the YouTube player base JavaScript path.
+    class func getYTPlayerJS(html: String) throws -> String {
+        let jsURLPatterns = [
+            NSRegularExpression(#"(/s/player/[\w\d]+/[\w\d_/.]+/base\.js)"#)
+        ]
+        
+        for pattern in jsURLPatterns {
+            if let match = pattern.firstMatch(in: html, group: 1) {
+                return match.content
+            }
+        }
+        
+        throw YouTubeKitError.regexMatchError
+    }
+    
+    struct PlayerConfig: Decodable {
+        let assets: Assets?
+        
+        struct Assets: Decodable {
+            let js: String?
+        }
+    }
+    
+    /// Get the YouTube player configuration data from the watch/embed html
+    class func getYTPlayerConfig(html: String) throws -> PlayerConfig {
+        os_log("finding initial function name", log: log, type: .debug)
+        let configPatterns = [
+            NSRegularExpression(#"ytplayer\.config\s*=\s*"#),
+            NSRegularExpression(#"ytInitialPlayerResponse\s*=\s*"#)
+        ]
+        
+        for pattern in configPatterns {
+            do {
+                return try parseForObject(PlayerConfig.self, html: html, precedingRegex: pattern)
+            } catch let error {
+                os_log("pattern (%{public}@) failed: %{public}@", log: log, type: .debug, pattern.pattern, error.localizedDescription)
+                continue
+            }
+        }
+        
+        let setConfigPatterns = [
+            NSRegularExpression(#"yt\.setConfig\(.*['\"]PLAYER_CONFIG['\"]:\s*"#)
+        ]
+        
+        for pattern in setConfigPatterns {
+            do {
+                return try parseForObject(PlayerConfig.self, html: html, precedingRegex: pattern)
+            } catch {
+                continue
+            }
+        }
+        
+        throw YouTubeKitError.regexMatchError
+    }
+    
     /// Return the playability status and status explanation of the video
     /// For example, a video may have a status of LOGIN\_REQUIRED, and an explanation
     /// of "This is a private video. Please sign in to verify that you may see it."
@@ -159,6 +227,91 @@ class Extraction {
             }
         }
         
+        throw YouTubeKitError.regexMatchError
+    }
+    
+    class func parseQueryString(_ queryString: String) -> [String: [String]] {
+        var components = URLComponents()
+        components.query = queryString
+        var result = [String: [String]]()
+        for queryItem in components.queryItems ?? [] {
+            if let value = queryItem.value {
+                result[queryItem.name, default: []].append(value)
+            }
+        }
+        return result
+    }
+    
+    class func applyDescrambler(streamData: InnerTube.StreamingData) -> [InnerTube.StreamingData.Format] {
+        /*if streamData.keys.contains("url") {
+            return nil
+        }*/
+        
+        var formats = [InnerTube.StreamingData.Format]()
+        if let streamFormats = streamData.formats {
+            formats += streamFormats
+        }
+        if let adaptiveFormats = streamData.adaptiveFormats {
+            formats += adaptiveFormats
+        }
+        
+        for (i, data) in formats.enumerated() {
+            if data.url == nil {
+                if let signatureCipher = data.signatureCipher {
+                    let cipherURL = parseQueryString(signatureCipher)
+                    formats[i].url = cipherURL["url"]?.first
+                    formats[i].s = cipherURL["s"]?.first
+                }
+            }
+        }
+        
+        os_log("applying descrambler", log: log, type: .debug)
+        return formats
+    }
+    
+    /// apply the decrypted signature to the stream manifest
+    class func applySignature(streamManifest: inout [InnerTube.StreamingData.Format], videoInfo: InnerTube.VideoInfo, js: String) throws {
+        let cipher = try Cipher(js: js)
+        
+        for (i, stream) in streamManifest.enumerated() {
+            if let url = stream.url {
+                if url.contains("signature") || (stream.s == nil && (url.contains("&sig=") || url.contains("&lsig="))) {
+                    os_log("signature found, skip decipher", log: log, type: .debug)
+                    continue
+                }
+                
+                if let cipheredSignature = stream.s {
+                    let signature = cipher.getSignature(cipheredSignature: cipheredSignature)
+                    
+                    os_log("finished descrambling signature for itag=%{public}i", log: log, type: .debug, stream.itag)
+                    
+                    guard var urlComponents = URLComponents(string: url) else { continue } // TODO: fail differently
+                    
+                    urlComponents.queryItems?["sig"] = signature
+                    
+                    if urlComponents.queryItems?.contains(where: { $0.name == "ratebypass" }) ?? false {
+                        let initialN = urlComponents.queryItems?["n"] ?? ""
+                        let newN = try cipher.calculateN(initialN: Array(initialN))
+                        urlComponents.queryItems?["n"] = newN
+                    }
+                    
+                    let url = urlComponents.url?.absoluteString ?? url
+                    
+                    streamManifest[i].url = url
+                }
+            }
+        }
+    }
+    
+    /// Breaks up the data in the ``type`` key of the manifest, which contains the
+    /// mime type and codecs serialized together, and splits them into separate elements.
+    /// _Example_: mimeTypeCodec(#"audio/webm; codecs="opus""#) -> ("audio/webm", ["opus"])
+    class func mimeTypeCodec(_ mimeTypeCodec: String) throws -> (String, [String]) {
+        let regex = NSRegularExpression(#"(\w+\/\w+)\;\scodecs=\"([a-zA-Z-0-9.,\s]*)\""#)
+        if let mimeTypeResult = regex.firstMatch(in: mimeTypeCodec, group: 1),
+           let codecsResult = regex.firstMatch(in: mimeTypeCodec, group: 2) {
+            return (mimeTypeResult.content, codecsResult.content.split(separator: ",").map { String($0) })
+        }
         throw YouTubeKitError.regexMatchError
     }
     

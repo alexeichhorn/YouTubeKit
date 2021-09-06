@@ -9,4 +9,6 @@ import Foundation
 
 struct StreamQuery {
     
+    let fmtStreams: [Stream]
+    
 }

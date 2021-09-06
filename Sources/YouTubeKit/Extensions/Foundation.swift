@@ -57,3 +57,57 @@ extension String {
     }
     
 }
+
+extension Collection where Indices.Iterator.Element == Index {
+    
+    /// Returns the element at the specified index if it is within bounds, otherwise nil.
+    subscript (safe index: Index) -> Iterator.Element? {
+        return indices.contains(index) ? self[index] : nil
+    }
+    
+}
+
+extension Collection where Element: Hashable {
+    
+    var identityDictionary: [Element: Element] {
+        var result = [Element: Element]()
+        for element in self {
+            result[element] = element
+        }
+        return result
+    }
+    
+}
+
+extension Dictionary {
+    
+    mutating func merge(dict: [Key: Value]) {
+        for (k, v) in dict {
+            updateValue(v, forKey: k)
+        }
+    }
+    
+    func merging(with dict: [Key: Value]) -> Self {
+        var result = self
+        result.merge(dict: dict)
+        return result
+    }
+    
+}
+
+extension Array where Element == URLQueryItem {
+    
+    subscript(_ key: String) -> String? {
+        get {
+            first(where: { $0.name == key })?.value
+        }
+        set {
+            if let index = firstIndex(where: { $0.name == key }) {
+                self[index].value = newValue
+            } else {
+                self.append(URLQueryItem(name: key, value: newValue))
+            }
+        }
+    }
+    
+}
