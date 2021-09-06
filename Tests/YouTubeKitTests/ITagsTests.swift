@@ -11,7 +11,7 @@ import XCTest
 final class ITagsTests: XCTestCase {
     
     func testSampleProfile() {
-        guard let itag = ITags(22) else {
+        guard let itag = ITag(22) else {
             XCTFail()
             return
         }
@@ -25,7 +25,7 @@ final class ITagsTests: XCTestCase {
     }
     
     func testNonExistentProfile() {
-        let itag = ITags(2239)
+        let itag = ITag(2239)
         XCTAssertNil(itag)
     }
     

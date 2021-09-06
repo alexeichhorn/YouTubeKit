@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct StreamQuery {
+public struct StreamQuery {
     
     let fmtStreams: [Stream]
     

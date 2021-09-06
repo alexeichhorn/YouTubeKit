@@ -7,23 +7,24 @@
 
 import Foundation
 
-struct Stream {
+public struct Stream {
     
-    let url: URL
-    let itag: ITags
-    let mimeType: String
-    let codecs: [String]
-    let type: String
-    let subtype: String
+    public let url: URL
+    public let itag: ITag
+    public let mimeType: String
+    public let codecs: [String]
+    public let type: String
+    public let subtype: String
     
-    let bitrate: Int?
-    let averageBitrate: Int?
+    public let bitrate: Int?
+    public let averageBitrate: Int?
+    public let isDash: Bool
+    
     private let filesize: Int?
-    let isDash: Bool
     
     init(format: InnerTube.StreamingData.Format) throws {
         guard let url = format.url.flatMap({ URL(string: $0) }),
-              let itag = ITags(format.itag) else {
+              let itag = ITag(format.itag) else {
             throw YouTubeKitError.extractError
         }
         

@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct ITags {
+public struct ITag {
     
     let itag: Int
     

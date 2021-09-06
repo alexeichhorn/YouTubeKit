@@ -27,6 +27,7 @@ final class YouTubeKitTests: XCTestCase {
         do {
             let streams = try await youtube.streams
             print(streams)
+            XCTAssert(streams.fmtStreams.count > 0)
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
