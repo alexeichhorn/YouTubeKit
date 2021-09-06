@@ -161,7 +161,7 @@ public class YouTube {
     /// Interface to query both adaptive (DASH) and progressive streams.
     /// Returns a list of streams if they have been initialized.
     /// If the streams have not been initialized, finds all relevant streams and initializes them.
-    var streams: [Stream] {
+    public var streams: [Stream] {
         get async throws {
             try await checkAvailability()
             if let cached = _fmtStreams {

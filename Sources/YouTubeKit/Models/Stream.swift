@@ -48,6 +48,7 @@ public struct Stream {
         codecs.count % 2 == 1
     }
     
+    /// video and audio in same stream
     /// opposite of adaptive (is not DASH)
     var isProgressive: Bool {
         !isAdaptive

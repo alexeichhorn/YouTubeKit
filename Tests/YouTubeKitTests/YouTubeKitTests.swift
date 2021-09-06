@@ -22,15 +22,42 @@ final class YouTubeKitTests: XCTestCase {
         }
     }
     
-    func testSampleVideoStreams() async {
+    func testSampleVideo1() async {
         let youtube = YouTube(videoID: "9bZkp7q19f0")
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
             
-            let audioOnlyStreams = streams.filterAudioOnly()
-            print(audioOnlyStreams)
+            let bestAudioStream = streams.filterAudioOnly().filter { $0.subtype == "mp4" }.highestAudioBitrateStream()
+            print(bestAudioStream)
             
+        } catch let error {
+            XCTFail("did throw error: \(error)")
+        }
+    }
+    
+    func testSampleVideo2() async {
+        let youtube = YouTube(videoID: "2lAe1cqCOXo")
+        do {
+            let streams = try await youtube.streams
+            XCTAssert(streams.count > 0)
+            print(streams)
+            print(streams.count)
+            //print(streams.filterAudioOnly().filter { $0.subtype == "mp4" }.highestAudioBitrateStream()?.url)
+            print(streams.filterVideoOnly().highestResolutionStream())
+        } catch let error {
+            XCTFail("did throw error: \(error)")
+        }
+    }
+    
+    func testSampleVideoAgeRestricted() async {
+        let youtube = YouTube(videoID: "irauhITDrsE")
+        do {
+            let streams = try await youtube.streams
+            XCTAssert(streams.count > 0)
+            print(streams.count)
+            //print(streams.filterAudioOnly().filter { $0.subtype == "mp4" }.highestAudioBitrateStream()?.url)
+            print(streams.filter { $0.isProgressive }.highestResolutionStream())
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
