@@ -44,34 +44,34 @@ public struct Stream {
     }
     
     /// whether the stream is DASH
-    var isAdaptive: Bool {
+    public var isAdaptive: Bool {
         codecs.count % 2 == 1
     }
     
     /// video and audio in same stream
     /// opposite of adaptive (is not DASH)
-    var isProgressive: Bool {
+    public var isProgressive: Bool {
         !isAdaptive
     }
     
     /// Whether the stream only contains audio.
-    var includesAudioTrack: Bool {
+    public var includesAudioTrack: Bool {
         isProgressive || type == "audio"
     }
     
     /// Whether the stream only contains video.
-    var includesVideoTrack: Bool {
+    public var includesVideoTrack: Bool {
         isProgressive || type == "video"
     }
     
-    lazy var videoCodec: String? = {
+    public lazy var videoCodec: String? = {
         if !isAdaptive || includesVideoTrack {
             return codecs.first
         }
         return nil
     }()
     
-    lazy var audioCodec: String? = {
+    public lazy var audioCodec: String? = {
         if !isAdaptive {
             return codecs.last
         } else if includesAudioTrack {
