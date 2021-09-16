@@ -7,6 +7,7 @@
 
 import Foundation
 
+@available(iOS 15.0, *)
 class InnerTube {
     
     private struct Client {

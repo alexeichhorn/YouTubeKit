@@ -8,6 +8,7 @@
 import Foundation
 import os.log
 
+@available(iOS 15.0, *)
 class Cipher {
     
     let js: String

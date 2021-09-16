@@ -8,6 +8,7 @@
 import XCTest
 @testable import YouTubeKit
 
+@available(iOS 15.0, *)
 final class ExtractionTests: XCTestCase {
     
     func testExtractVideoID() {

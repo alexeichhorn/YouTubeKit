@@ -7,6 +7,7 @@
 
 import Foundation
 
+@available(iOS 15.0, *)
 public class YouTube {
     
     private var _js: String?

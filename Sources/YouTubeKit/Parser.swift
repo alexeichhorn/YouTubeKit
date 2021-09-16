@@ -7,6 +7,7 @@
 
 import Foundation
 
+@available(iOS 15.0, *)
 class Parser {
     
     /// Parses the throttling array into a array of strings.

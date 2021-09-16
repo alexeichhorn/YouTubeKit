@@ -7,6 +7,7 @@
 
 import Foundation
 
+@available(iOS 15.0, *)
 public struct Stream {
     
     public let url: URL

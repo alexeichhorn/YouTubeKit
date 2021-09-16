@@ -7,6 +7,7 @@
 
 import Foundation
 
+@available(iOS 15.0, *)
 public extension Collection where Element == Stream {
     
     func sorted<T: Comparable>(by keyPath: KeyPath<Stream, T>, ascending: Bool = true) -> [Stream] {
