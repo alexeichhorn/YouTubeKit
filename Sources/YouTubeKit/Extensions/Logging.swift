@@ -8,7 +8,7 @@
 import Foundation
 import os.log
 
-@available(iOS 10.0, *)
+@available(iOS 10.0, watchOS 3.0, tvOS 10.0, macOS 10.12, *)
 extension OSLog {
     
     convenience init(category: String) {

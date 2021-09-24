@@ -1,7 +1,7 @@
 import XCTest
 @testable import YouTubeKit
 
-@available(iOS 15.0, *)
+@available(iOS 15.0, watchOS 8.0, tvOS 15.0, macOS 12.0, *)
 final class YouTubeKitTests: XCTestCase {
     
     func testVideoUnavailable() async {
