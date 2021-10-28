@@ -13,25 +13,25 @@ It's currently only available for iOS 15, watchOS 8, tvOS 15 and macOS 12, since
 ## Usage
 
 1. Create a `YouTube` object with the `videoURL` or `videoID` of your video:
-```
+```swift
 let video = YouTube(url: videoURL)
 ```
 or
-```
+```swift
 let video = YouTube(videoID: videoID)
 ```
 
 
 2. Extract all streams:
-```
+```swift
 let streams = try await video.streams
 ```
 This will return an array of `Stream` objects.
 
 
 3. Filter for the stream you want by using a normal filter or with provided helper functions like:
-```
-let 1080Streams = streams.streams(withExactResolution: 1080)
+```swift
+let streamsAt1080 = streams.streams(withExactResolution: 1080)
 let lowestResolution = streams.lowestResolutionStream()
 let highestResolution = streams.highestResolutionStream()
 let lowestAudioBitrate = streams.lowestAudioBitrateStream()
@@ -43,7 +43,7 @@ let videoOnlyStreams = streams.filterVideoOnly()  // all streams without audio t
 
 ### Example 1
 To get the video url of type mp4 with the highest available resolution for a given YouTube url:
-```
+```swift
 let stream = try await YouTube(url: youtubeURL).streams
                           .filter { $0.isProgressive && $0.subtype == "mp4" }
                           .highestResolutionStream()
@@ -55,7 +55,7 @@ The `isProgressive` parameter is used to filter only streams that contain both v
 
 ### Example 2
 To get the best mp4 audio-only url for a given YouTube ID:
-```
+```swift
 let stream = try await YouTube(videoID: "9bZkp7q19f0").streams
                           .filterAudioOnly()
                           .filter { $0.subtype == "mp4" }
