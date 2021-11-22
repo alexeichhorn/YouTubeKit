@@ -10,14 +10,14 @@ import Foundation
 @available(iOS 15.0, watchOS 8.0, tvOS 15.0, macOS 12.0, *)
 class Parser {
     
-    /// Parses the throttling array into a array of strings.
+    /// Parses the throttling array into an array of strings.
     /// Expects input to begin with `[` and close with `]`.
     class func throttlingArraySplit(jsArray: String) throws -> [String] {
         var results = [String]()
         var currentSubstring = String(jsArray.dropFirst())
         
         let commaRegex = NSRegularExpression(#","#)
-        let funcRegex = NSRegularExpression(#"function\([^)]+\)"#)
+        let funcRegex = NSRegularExpression(#"function\([^)]*\)"#)
         
         while !currentSubstring.isEmpty {
             if currentSubstring.starts(with: "function") {
