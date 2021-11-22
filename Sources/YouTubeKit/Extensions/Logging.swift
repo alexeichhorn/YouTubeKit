@@ -16,7 +16,7 @@ extension OSLog {
     }
     
     convenience init(_ aClass: AnyClass) {
-        self.init(subsystem: Bundle(for: aClass).bundleIdentifier!, category: String(describing: aClass))
+        self.init(subsystem: Bundle(for: aClass).bundleIdentifier ?? "YouTubeKit", category: String(describing: aClass))
     }
     
 }
