@@ -7,7 +7,7 @@ This package allows to extract the direct video url or audio url for any YouTube
 The structurce of the code is strongly aligned with the [pytube project](https://github.com/pytube/pytube) (written in Python). This should make future breaking changes (by the YouTube API) easier to fix.
 
 ## Compatibility
-It's currently only available for iOS 15, watchOS 8, tvOS 15 and macOS 12, since it's relying on the Swift 5.5 Concurrency module.
+It requires iOS 13, watchOS 6, tvOS 13 or macOS 10.15, since it's relying on the Swift 5.5 Concurrency module.
 
 
 ## Usage
