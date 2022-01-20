@@ -272,7 +272,7 @@ class Extraction {
     
     /// apply the decrypted signature to the stream manifest
     class func applySignature(streamManifest: inout [InnerTube.StreamingData.Format], videoInfo: InnerTube.VideoInfo, js: String) throws {
-        let cipher = try Cipher(js: js)
+        var cipher = ThrowingLazy(try Cipher(js: js))
         
         for (i, stream) in streamManifest.enumerated() {
             if let url = stream.url {
@@ -282,7 +282,7 @@ class Extraction {
                 }
                 
                 if let cipheredSignature = stream.s {
-                    let signature = cipher.getSignature(cipheredSignature: cipheredSignature)
+                    let signature = try cipher.value.getSignature(cipheredSignature: cipheredSignature)
                     
                     os_log("finished descrambling signature for itag=%{public}i", log: log, type: .debug, stream.itag)
                     
@@ -292,7 +292,7 @@ class Extraction {
                     
                     if urlComponents.queryItems?.contains(where: { $0.name == "ratebypass" }) ?? false {
                         let initialN = urlComponents.queryItems?["n"] ?? ""
-                        let newN = try cipher.calculateN(initialN: Array(initialN))
+                        let newN = try cipher.value.calculateN(initialN: Array(initialN))
                         urlComponents.queryItems?["n"] = newN
                     }
                     
