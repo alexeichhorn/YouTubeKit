@@ -134,8 +134,8 @@ class Cipher {
     /// Extract the "transform plan".
     /// The "transform plan" is the functions that the ciphered signature is cycled through to obtain the actual signature.
     class func getTransformPlan(js: String) throws -> [String] {
-        let name = try getInitialFunctionName(js: js) // TODO: escape name
-        let pattern = NSRegularExpression(name + #"=function\(\w\)\{[a-z=\.\(\"\)]*;(.*);(?:.+)\}"#)
+        let name = try getInitialFunctionName(js: js)
+        let pattern = NSRegularExpression(NSRegularExpression.escapedPattern(for: name) + #"=function\(\w\)\{[a-z=\.\(\"\)]*;(.*);(?:.+)\}"#)
         os_log("getting transform plan", log: log, type: .debug)
         if let match = pattern.firstMatch(in: js, group: 1) {
             return match.content.components(separatedBy: ";")
@@ -188,9 +188,9 @@ class Cipher {
     
     /// Extract the raw code for the throttling function.
     class func getThrottlingFunctionCode(js: String) throws -> String {
-        let name = try getThrottlingFunctionName(js: js) // TODO: escape name (re.escape)
+        let name = try getThrottlingFunctionName(js: js)
         
-        let regex = NSRegularExpression(name + #"=function\(\w\)"#)
+        let regex = NSRegularExpression(NSRegularExpression.escapedPattern(for: name) + #"=function\(\w\)"#)
         guard let match = regex.firstMatch(in: js) else {
             throw YouTubeKitError.regexMatchError
         }
