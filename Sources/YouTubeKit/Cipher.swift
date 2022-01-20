@@ -32,7 +32,7 @@ class Cipher {
         self.js = js
         self.transformPlan = try Cipher.getTransformPlan(js: js)
 
-        let varRegex = NSRegularExpression(#"^\w+\W"#)
+        let varRegex = NSRegularExpression(#"^\$*\w+\W"#)
         guard let varMatch = varRegex.firstMatch(in: transformPlan[0], group: 0) else {
             throw YouTubeKitError.regexMatchError
         }
@@ -147,7 +147,7 @@ class Cipher {
     /// The "transform object" contains the function definitions referenced in the transform plan". The ``variable`` argument is the obfuscated variable name
     /// which contains these functions, for example, given the function call ``DE.AJ(a,15)`` returned by the transform plan, "DE" would be the var.
     class func getTransformObject(js: String, variable: String) throws -> [String] {
-        let pattern = try! NSRegularExpression(pattern: #"var "# + variable + #"=\{(.*?)\};"#, options: [.dotMatchesLineSeparators]) // TODO: escape variable
+        let pattern = try! NSRegularExpression(pattern: #"var "# + NSRegularExpression.escapedPattern(for: variable) + #"=\{(.*?)\};"#, options: [.dotMatchesLineSeparators])
         os_log("getting transform object", log: log, type: .debug)
 
         if let transformMatch = pattern.firstMatch(in: js, group: 1) {
