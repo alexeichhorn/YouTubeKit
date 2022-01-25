@@ -32,6 +32,9 @@ final class YouTubeKitTests: XCTestCase {
             let bestAudioStream = streams.filterAudioOnly().filter { $0.subtype == "mp4" }.highestAudioBitrateStream()
             print(bestAudioStream)
             
+            // test Cipher initialization directly (in case not lazily loaded)
+            await XCTAssertNoThrow(try await Cipher(js: youtube.js), "Failed to initialize Cipher")
+            
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
@@ -46,6 +49,10 @@ final class YouTubeKitTests: XCTestCase {
             print(streams.count)
             //print(streams.filterAudioOnly().filter { $0.subtype == "mp4" }.highestAudioBitrateStream()?.url)
             print(streams.filterVideoOnly().highestResolutionStream())
+            
+            // test Cipher initialization directly (in case not lazily loaded)
+            await XCTAssertNoThrow(try await Cipher(js: youtube.js), "Failed to initialize Cipher")
+            
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
