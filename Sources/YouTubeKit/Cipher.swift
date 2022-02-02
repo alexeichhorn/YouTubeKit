@@ -175,11 +175,22 @@ class Cipher {
     /// Extract the name of the function that computes the throttling parameter.
     class func getThrottlingFunctionName(js: String) throws -> String {
         let functionPatterns = [
-            NSRegularExpression(#"a\.[A-Z]&&\(b=a\.get\("n"\)\)&&\(b=([^(]+)\(b\)"#)
+            NSRegularExpression(#"a\.[A-Z]\s*&&\s*\(b\s*=\s*a\.get\("n"\)\)\s*&&\s*\(b\s*=\s*([a-zA-Z0-9$]{3})(\[\d+\])?\(b\)"#)
         ]
         for pattern in functionPatterns {
-            if let functionMatch = pattern.firstMatch(in: js, group: 1) {
-                return functionMatch.content
+            guard let (_, functionMatchGroups) = pattern.allMatches(in: js, includingGroups: [1, 2]).first else { continue }
+            guard let firstGroup = functionMatchGroups[1] else { continue }
+            guard let secondGroup = functionMatchGroups[2] else {
+                return firstGroup.content
+            }
+            
+            guard let index = Int(secondGroup.content.strip(from: "[]")) else { continue }
+            let arrayPattern = NSRegularExpression(#"var "# + NSRegularExpression.escapedPattern(for: firstGroup.content) + #"\s*=\s*(\[.+?\]);"#)
+            if let arrayMatch = arrayPattern.firstMatch(in: js, group: 1) {
+                let array = arrayMatch.content.strip(from: "[]").split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                if array.indices.contains(index) {
+                    return array[index]
+                }
             }
         }
         

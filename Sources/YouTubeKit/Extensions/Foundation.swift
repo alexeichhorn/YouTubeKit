@@ -35,6 +35,15 @@ extension String {
     }
     
     
+    func strip(from unwantedCharacters: String) -> String {
+        var result = self
+        for unwantedCharacter in unwantedCharacters {
+            result = result.replacingOccurrences(of: String(unwantedCharacter), with: "")
+        }
+        return result
+    }
+    
+    
     // - MARK: Escaping
     
     func unescaped() -> String {

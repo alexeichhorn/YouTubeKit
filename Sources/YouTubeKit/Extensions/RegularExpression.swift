@@ -47,7 +47,7 @@ extension NSRegularExpression {
         let range = NSRange(location: 0, length: string.utf16.count)
         let results = matches(in: string, options: [], range: range)
         let resultRanges = results.compactMap { result -> (Range<String.Index>?, [Int: Range<String.Index>?]) in
-            let groupRanges = groups.identityDictionary.mapValues { result.range(at: $0) }.mapValues { Range($0, in: string) }
+            let groupRanges = groups.identityDictionary.filter { $0.key < result.numberOfRanges }.mapValues { result.range(at: $0) }.mapValues { Range($0, in: string) }
             return (Range(result.range, in: string), groupRanges)
         }
         let compactedResultRanges = resultRanges.compactMap { mainRange, groupRanges -> (Range<String.Index>, [Int: Range<String.Index>])? in

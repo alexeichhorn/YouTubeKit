@@ -70,4 +70,13 @@ final class ExtensionTests: XCTestCase {
         }
     }
     
+    
+    func testStringStrip() {
+        
+        XCTAssertEqual("xD".strip(from: "x"), "D")
+        XCTAssertEqual("[[8810dja3kj]]]]]]28dsalk".strip(from: "[]"), "8810dja3kj28dsalk")
+        XCTAssertEqual("sahdaläösdsdsü".strip(from: "ööööüöööö"), "sahdaläsdsds")
+        
+    }
+    
 }
