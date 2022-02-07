@@ -150,7 +150,7 @@ class InnerTube {
             let qualityLabel: String?
             let averageBitrate: Int?
             let audioQuality: String?
-            let approxDurationMs: String
+            let approxDurationMs: String?
             let audioSampleRate: String?
             let audioChannels: Int?
             let signatureCipher: String? // not tested yet
