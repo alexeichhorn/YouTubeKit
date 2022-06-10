@@ -31,15 +31,17 @@ class InnerTube {
         }
     }
     
+    // overview of clients: https://github.com/zerodytrash/YouTube-Internal-Clients
     private let defaultClients = [
         ClientType.web: Client(name: "WEB", version: "2.20200720.00.02", screen: nil, apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8"),
         ClientType.android: Client(name: "ANDROID", version: "16.20", screen: nil, apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8"),
         ClientType.webEmbed: Client(name: "WEB", version: "2.20210721.00.00", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8"),
-        ClientType.androidEmbed: Client(name: "ANDROID", version: "16.20", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8")
+        ClientType.androidEmbed: Client(name: "ANDROID", version: "16.20", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8"),
+        ClientType.tvEmbed: Client(name: "TVHTML5_SIMPLY_EMBEDDED_PLAYER", version: "2.0", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8")
     ]
     
     enum ClientType {
-        case web, android, webEmbed, androidEmbed
+        case web, android, webEmbed, androidEmbed, tvEmbed
     }
     
     private var accessToken: String?

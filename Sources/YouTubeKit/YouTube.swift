@@ -220,7 +220,7 @@ public class YouTube {
     }
     
     private func bypassAgeGate() async throws {
-        let innertube = InnerTube(client: .androidEmbed, useOAuth: useOAuth, allowCache: allowOAuthCache)
+        let innertube = InnerTube(client: .tvEmbed, useOAuth: useOAuth, allowCache: allowOAuthCache)
         let innertubeResponse = try await innertube.player(videoID: videoID)
         
         if innertubeResponse.playabilityStatus?.status == "UNPLAYABLE" {
