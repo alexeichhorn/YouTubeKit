@@ -175,7 +175,8 @@ class Cipher {
     /// Extract the name of the function that computes the throttling parameter.
     class func getThrottlingFunctionName(js: String) throws -> String {
         let functionPatterns = [
-            NSRegularExpression(#"a\.[A-Z]\s*&&\s*\(b\s*=\s*a\.get\("n"\)\)\s*&&\s*\(b\s*=\s*([a-zA-Z0-9$]{3})(\[\d+\])?\(b\)"#)
+            NSRegularExpression(#"a\.[a-zA-Z]\s*&&\s*\([a-z]\s*=\s*a\.get\("n"\)\)\s*&&\s*"#),
+            NSRegularExpression(#"\([a-z]\s*=\s*([a-zA-Z0-9$]+)(\[\d+\])?\([a-z]\)"#)
         ]
         for pattern in functionPatterns {
             guard let (_, functionMatchGroups) = pattern.allMatches(in: js, includingGroups: [1, 2]).first else { continue }
