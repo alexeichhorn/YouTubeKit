@@ -77,7 +77,7 @@ final class YouTubeKitTests: XCTestCase {
     }
     
     func testSampleVideoAgeRestricted() async {
-        let youtube = YouTube(videoID: "irauhITDrsE")
+        let youtube = YouTube(videoID: "HtVdAasjOgU") // EX_8ZjT2sO4
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)

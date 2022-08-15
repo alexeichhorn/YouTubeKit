@@ -223,7 +223,7 @@ public class YouTube {
         let innertube = InnerTube(client: .tvEmbed, useOAuth: useOAuth, allowCache: allowOAuthCache)
         let innertubeResponse = try await innertube.player(videoID: videoID)
         
-        if innertubeResponse.playabilityStatus?.status == "UNPLAYABLE" {
+        if innertubeResponse.playabilityStatus?.status == "UNPLAYABLE" || innertubeResponse.playabilityStatus?.status == "LOGIN_REQUIRED" {
             throw YouTubeKitError.videoAgeRestricted
         }
         
