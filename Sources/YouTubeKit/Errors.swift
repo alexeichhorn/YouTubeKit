@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum YouTubeKitError: Error {
+public enum YouTubeKitError: Error {
     case maxRetriesExceeded
     case htmlParseError
     case extractError
