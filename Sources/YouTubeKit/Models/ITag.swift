@@ -136,6 +136,15 @@ fileprivate let DASH_VIDEO: [Int: (Int?, Int?)] = [
     401: (2160, nil),  // MP4
     402: (4320, nil),  // MP4
     571: (4320, nil),  // MP4
+    694: (144, nil),  // MP4
+    695: (240, nil),  // MP4
+    696: (360, nil),  // MP4
+    697: (480, nil),  // MP4
+    698: (720, nil),  // MP4
+    699: (1080, nil),  // MP4
+    700: (1440, nil),  // MP4
+    701: (2160, nil),  // MP4
+    702: (4320, nil),  // MP4
 ]
 
 fileprivate let DASH_AUDIO: [Int: (Int?, Int?)] = [
