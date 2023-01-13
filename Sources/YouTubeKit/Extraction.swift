@@ -142,7 +142,7 @@ class Extraction {
         ]
         
         let endIndex = html.endIndex
-        while i <= endIndex {
+        while i < endIndex {
             guard let currentContext = stack.last else {
                 break
             }
