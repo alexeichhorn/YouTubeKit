@@ -8,7 +8,7 @@
 import XCTest
 @testable import YouTubeKit
 
-@available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
+@available(iOS 15.0, watchOS 8.0, tvOS 15.0, macOS 12.0, *)
 final class CipherTests: XCTestCase {
     
     func testGetInitialFunctionNameWithNoMatch() {
