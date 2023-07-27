@@ -199,14 +199,20 @@ class Extraction {
             let status: Status?
             let reason: String?
             let messages: [String]?
-            let liveStreamability: Bool?
-            
+            let liveStreamability: LiveStreamabilityRenderer?
+
             enum Status: String, Decodable {
                 case ok = "OK"
                 case unplayable = "UNPLAYABLE"
                 case loginRequired = "LOGIN_REQUIRED"
                 case error = "ERROR"
                 case liveStream = "LIVE_STREAM"
+            }
+
+            struct LiveStreamabilityRenderer: Decodable {
+                let videoId: String?
+                let broadcastId: Int?
+                let pillDelayMs: Int?
             }
         }
     }
