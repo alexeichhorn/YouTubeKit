@@ -189,6 +189,13 @@ public class YouTube {
         }
     }
     
+    /// The URL of the HLS (HTTP Live Streaming) manifest.
+    public var hlsManifestUrl: String? {
+        get async throws {
+            return try await streamingData.hlsManifestUrl
+        }
+    }
+
     /// streaming data from video info
     var streamingData: InnerTube.StreamingData {
         get async throws {
