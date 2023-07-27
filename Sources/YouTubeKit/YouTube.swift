@@ -92,7 +92,8 @@ public class YouTube {
     /// check whether the video is available
     public func checkAvailability() async throws {
         let (status, messages) = try Extraction.playabilityStatus(watchHTML: await watchHTML)
-        
+        let streamingData = try await videoInfo.streamingData
+
         for reason in messages {
             switch status {
             case .unplayable:
@@ -105,9 +106,9 @@ public class YouTube {
                 }
             case .error:
                 throw YouTubeKitError.videoUnavailable
-            case .liveStream:
+            case .liveStream where streamingData?.hlsManifestUrl == nil :
                 throw YouTubeKitError.liveStreamError
-            case .ok, .none:
+            case .ok, .none, .liveStream:
                 continue
             }
         }
