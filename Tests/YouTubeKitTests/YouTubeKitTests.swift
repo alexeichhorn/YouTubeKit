@@ -125,7 +125,19 @@ final class YouTubeKitTests: XCTestCase {
         }
     }
     
+    func testStreamsAndHlsManifestUrl() async {
+        let youtube = YouTube(videoID: "21X5lGlDOfg")
+        do {
+            let streams = try await youtube.streams
+            let url = try await youtube.streamingData.hlsManifestUrl
+            XCTAssertTrue(url!.contains(".m3u8"))
+            XCTAssertTrue(streams.count > 0)
+        } catch {
+            XCTFail("did throw error: \(error)")
+        }
+    }
     
+
     // MARK: - Performance Measurement
     
     func testObjectParsingFromStartpoint() {
