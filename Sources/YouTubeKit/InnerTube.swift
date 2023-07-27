@@ -158,7 +158,7 @@ class InnerTube {
             let itag: Int
             var url: String?
             let mimeType: String
-            let bitrate: Int
+            let bitrate: Int?
             let width: Int?
             let height: Int?
             let lastModified: String?
