@@ -152,6 +152,7 @@ class InnerTube {
         let formats: [Format]?
         let adaptiveFormats: [Format]? // actually slightly different Format object (TODO)
         let onesieStreamingUrl: String?
+        let hlsManifestUrl: String?
         
         struct Format: Decodable {
             let itag: Int
