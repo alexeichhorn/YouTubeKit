@@ -152,12 +152,13 @@ class InnerTube {
         let formats: [Format]?
         let adaptiveFormats: [Format]? // actually slightly different Format object (TODO)
         let onesieStreamingUrl: String?
+        let hlsManifestUrl: String?
         
         struct Format: Decodable {
             let itag: Int
             var url: String?
             let mimeType: String
-            let bitrate: Int
+            let bitrate: Int?
             let width: Int?
             let height: Int?
             let lastModified: String?
