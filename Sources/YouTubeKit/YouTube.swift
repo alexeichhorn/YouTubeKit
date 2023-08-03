@@ -190,10 +190,14 @@ public class YouTube {
         }
     }
     
-    /// The URL of the HLS (HTTP Live Streaming) manifest.
-    public var hlsManifestUrl: String? {
+    /// Returns a list of live streams - currently only HLS supported
+    public var livestreams: [Livestream] {
         get async throws {
-            return try await streamingData.hlsManifestUrl
+            var livestreams = [Livestream]()
+            if let hlsManifestUrl = try await streamingData.hlsManifestUrl.flatMap({ URL(string: $0) }) {
+                livestreams.append(Livestream(url: hlsManifestUrl, streamType: .hls))
+            }
+            return livestreams
         }
     }
 
