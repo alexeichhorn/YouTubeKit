@@ -119,7 +119,7 @@ final class YouTubeKitTests: XCTestCase {
         let youtube = YouTube(videoID: "21X5lGlDOfg")
         do {
             let url = try await youtube.hlsManifestUrl
-            XCTAssertTrue(url!.contains(".m3u8"))
+            XCTAssertTrue(url!.absoluteString.contains(".m3u8"))
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
