@@ -67,5 +67,7 @@ let streamURL = stream.url
 ### Example 3
 To get the HLS url for a given YouTube ID:
 ```swift
-let hlsManifestUrl = try await YouTube(videoID: "21X5lGlDOfg").hlsManifestUrl
+let hlsManifestUrl = try await YouTube(videoID: "21X5lGlDOfg").livestreams
+                          .filter { $0.streamType == .hls }
+                          .first
 ```
