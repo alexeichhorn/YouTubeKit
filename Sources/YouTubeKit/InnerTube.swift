@@ -46,11 +46,13 @@ class InnerTube {
         ClientType.androidMusic: Client(name: "ANDROID_MUSIC", version: "5.16.51", screen: nil, apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", userAgent: "com.google.android.apps.youtube.music/17.31.35 (Linux; U; Android 11) gzip", androidSdkVersion: 30),
         ClientType.webEmbed: Client(name: "WEB_EMBEDDED_PLAYER", version: "1.20220731.00.00", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", userAgent: "Mozilla/5.0"),
         ClientType.androidEmbed: Client(name: "ANDROID_EMBEDDED_PLAYER", version: "17.31.35", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", userAgent: "com.google.android.youtube/17.31.35 (Linux; U; Android 11) gzip"),
-        ClientType.tvEmbed: Client(name: "TVHTML5_SIMPLY_EMBEDDED_PLAYER", version: "2.0", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", userAgent: "Mozilla/5.0")
+        ClientType.tvEmbed: Client(name: "TVHTML5_SIMPLY_EMBEDDED_PLAYER", version: "2.0", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", userAgent: "Mozilla/5.0"),
+        ClientType.ios: Client(name: "IOS", version: "17.33.2", screen: nil, apiKey: "AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc", userAgent: "com.google.ios.youtube/17.33.2 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)"),
+        ClientType.iosMusic: Client(name: "IOS_MUSIC", version: "5.21", screen: nil, apiKey: "AIzaSyBAETezhkwP0ZWA02RsqT1zu78Fpt0bC_s", userAgent: "com.google.ios.youtubemusic/5.21 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)")
     ]
     
     enum ClientType {
-        case web, android, androidMusic, webEmbed, androidEmbed, tvEmbed
+        case web, android, androidMusic, webEmbed, androidEmbed, tvEmbed, ios, iosMusic
     }
     
     private var accessToken: String?
@@ -65,7 +67,7 @@ class InnerTube {
     
     private let baseURL = "https://www.youtube.com/youtubei/v1"
     
-    init(client: ClientType = .android, useOAuth: Bool = false, allowCache: Bool = true) {
+    init(client: ClientType = .ios, useOAuth: Bool = false, allowCache: Bool = true) {
         self.context = defaultClients[client]!.context
         self.apiKey = defaultClients[client]!.apiKey
         self.headers = defaultClients[client]!.headers
