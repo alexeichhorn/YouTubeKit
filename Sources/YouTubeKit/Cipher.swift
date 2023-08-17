@@ -32,7 +32,7 @@ class Cipher {
         self.js = js
         self.transformPlan = try Cipher.getTransformPlan(js: js)
 
-        let varRegex = NSRegularExpression(#"^\$*\w+\W"#)
+        let varRegex = NSRegularExpression(#"^\$\w+\W"#)
         guard let varMatch = varRegex.firstMatch(in: transformPlan[0], group: 0) else {
             throw YouTubeKitError.regexMatchError
         }
