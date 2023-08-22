@@ -226,7 +226,7 @@ public class YouTube {
                 return cached
             }
             
-            let innertubeClients: [InnerTube.ClientType] = [.iosMusic]//, .ios, .android]
+            let innertubeClients: [InnerTube.ClientType] = [.iosMusic, .ios, .android]
 
             var lastResponse: InnerTube.VideoInfo? = nil
             var lastError: any Error = YouTubeKitError.extractError
