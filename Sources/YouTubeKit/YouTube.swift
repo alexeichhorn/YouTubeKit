@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os.log
 
 @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
 public class YouTube {
@@ -46,6 +47,8 @@ public class YouTube {
     
     let useOAuth: Bool
     let allowOAuthCache: Bool
+    
+    private let log = OSLog(YouTube.self)
     
     public init(videoID: String, proxies: [String: URL] = [:], useOAuth: Bool = false, allowOAuthCache: Bool = false) {
         self.videoID = videoID
@@ -223,11 +226,34 @@ public class YouTube {
                 return cached
             }
             
-            let innertube = InnerTube(useOAuth: useOAuth, allowCache: allowOAuthCache)
+            let innertubeClients: [InnerTube.ClientType] = [.iosMusic]//, .ios, .android]
+
+            var lastResponse: InnerTube.VideoInfo? = nil
+            var lastError: any Error = YouTubeKitError.extractError
             
-            let innertubeResponse = try await innertube.player(videoID: videoID)
-            _videoInfo = innertubeResponse
-            return innertubeResponse
+            for client in innertubeClients {
+                do {
+                    let innertube = InnerTube(client: client, useOAuth: useOAuth, allowCache: allowOAuthCache)
+                    
+                    let innertubeResponse = try await innertube.player(videoID: videoID)
+                    _videoInfo = innertubeResponse
+                    lastResponse = innertubeResponse
+                    
+                    if innertubeResponse.streamingData != nil {
+                        return innertubeResponse
+                    } else {
+                        os_log("Insufficient player response with %{public}@", log: log, type: .debug, client.rawValue)
+                    }
+                } catch let error {
+                    os_log("Failed to retrieve player response with %{public}@: %{public}@", log: log, type: .debug, client.rawValue, error.localizedDescription)
+                    lastError = error
+                }
+            }
+            
+            if let lastResponse {
+                return lastResponse
+            }
+            throw lastError
         }
     }
     

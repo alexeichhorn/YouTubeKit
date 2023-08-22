@@ -51,7 +51,7 @@ class InnerTube {
         ClientType.iosMusic: Client(name: "IOS_MUSIC", version: "5.21", screen: nil, apiKey: "AIzaSyBAETezhkwP0ZWA02RsqT1zu78Fpt0bC_s", userAgent: "com.google.ios.youtubemusic/5.21 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)")
     ]
     
-    enum ClientType {
+    enum ClientType: String {
         case web, android, androidMusic, webEmbed, androidEmbed, tvEmbed, ios, iosMusic
     }
     
