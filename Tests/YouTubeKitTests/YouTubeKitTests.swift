@@ -128,6 +128,16 @@ final class YouTubeKitTests: XCTestCase {
         }
     }
     
+    func testRemoteExtraction() async {
+        let client = RemoteYouTubeClient(serverURL: URL(string: "http://localhost:8080")!)
+        do {
+            let streams = try await client.extractStreams(forVideoID: "2lAe1cqCOXo")
+            print(streams)
+        } catch let error {
+            XCTFail("did throw error: \(error)")
+        }
+    }
+    
 
     // MARK: - Performance Measurement
     
