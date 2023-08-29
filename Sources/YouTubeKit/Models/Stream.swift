@@ -17,6 +17,8 @@ public struct Stream {
     public let type: String
     public let subtype: String
     
+    public let fileExtension: FileExtension
+    
     public let bitrate: Int?
     public let averageBitrate: Int?
     public let isDash: Bool
@@ -36,6 +38,8 @@ public struct Stream {
         let mimeTypeComponents = self.mimeType.components(separatedBy: "/")
         self.type = mimeTypeComponents.first ?? ""
         self.subtype = mimeTypeComponents[safe: 1] ?? ""
+        
+        self.fileExtension = FileExtension(mimeType: self.mimeType)
         
         self.bitrate = format.bitrate
         self.averageBitrate = format.averageBitrate
