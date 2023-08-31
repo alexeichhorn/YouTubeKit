@@ -21,7 +21,6 @@ public struct Stream {
     
     public let bitrate: Int?
     public let averageBitrate: Int?
-    public let isDash: Bool
     
     private let filesize: Int?
     
@@ -44,8 +43,27 @@ public struct Stream {
         self.bitrate = format.bitrate
         self.averageBitrate = format.averageBitrate
         self.filesize = format.contentLength.flatMap { Int($0) }
+    }
+    
+    init(remoteStream: RemoteStream) throws {
+        guard let itag = ITag(remoteStream.itag) else {
+            throw YouTubeKitError.extractError
+        }
         
-        self.isDash = itag.isDash
+        self.url = remoteStream.url
+        self.itag = itag
+        self.codecs = [remoteStream.audioCodec, remoteStream.videoCodec].compactMap { $0 }
+        
+        self.fileExtension = FileExtension(rawValue: remoteStream.ext) ?? .unknown
+        
+        self.bitrate = remoteStream.videoBitrate ?? remoteStream.audioBitrate
+        self.averageBitrate = remoteStream.averageBitrate
+        self.filesize = remoteStream.filesize
+        
+        // TODO: properly implement this (-> deprecate `subtype` and `mimeType`)
+        self.type = (remoteStream.videoCodec != nil) ? "video" : "audio"
+        self.subtype = ""
+        self.mimeType = ""
     }
     
     /// whether the stream is DASH
@@ -57,6 +75,10 @@ public struct Stream {
     /// opposite of adaptive (is not DASH)
     public var isProgressive: Bool {
         !isAdaptive
+    }
+    
+    public var isDash: Bool {
+        itag.isDash
     }
     
     /// Whether the stream only contains audio.

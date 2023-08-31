@@ -63,14 +63,15 @@ final class YouTubeKitTests: XCTestCase {
     }
     
     func testSampleVideo3() async {
-        let youtube = YouTube(videoID: "QlucwdDN1hw")
+        let youtube = YouTube(videoID: "dkpDjd2nHgo", methods: [.remote])
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
             print(streams)
             print(streams.count)
             //print(streams.filterAudioOnly().filter { $0.subtype == "mp4" }.highestAudioBitrateStream()?.url)
-            print(streams.filterVideoOnly().highestResolutionStream())
+            //print(streams.filterVideoOnly().highestResolutionStream())
+            print(streams.filter { $0.isProgressive && $0.fileExtension == .mp4 }.lowestResolutionStream()!)
             
             try await checkStreamReachability(streams.filterVideoOnly().highestResolutionStream())
             
@@ -129,10 +130,14 @@ final class YouTubeKitTests: XCTestCase {
     }
     
     func testRemoteExtraction() async {
-        let client = RemoteYouTubeClient(serverURL: URL(string: "http://localhost:8080")!)
+        let youtube = YouTube(videoID: "2lAe1cqCOXo", methods: [.remote])
         do {
-            let streams = try await client.extractStreams(forVideoID: "2lAe1cqCOXo")
-            print(streams)
+            let streams = try await youtube.streams
+            XCTAssert(streams.count > 0)
+            print(streams.count)
+            
+            try await checkStreamReachability(streams.filterVideoOnly().highestResolutionStream())
+            
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
