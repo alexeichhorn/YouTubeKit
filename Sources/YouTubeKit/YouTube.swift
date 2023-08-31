@@ -180,7 +180,7 @@ public class YouTube {
                 return cached
             }
             
-            let result = try await Task<Void, Error>.retry(with: methods) { method in
+            let result = try await Task.retry(with: methods) { method in
                 switch method {
                 case .local:
                     var streamManifest = Extraction.applyDescrambler(streamData: try await streamingData)
