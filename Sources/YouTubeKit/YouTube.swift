@@ -201,7 +201,7 @@ public class YouTube {
                     
                 case .remote(let serverURL):
                     let remoteClient = RemoteYouTubeClient(serverURL: serverURL)
-                    var remoteStreams = try await remoteClient.extractStreams(forVideoID: videoID)
+                    let remoteStreams = try await remoteClient.extractStreams(forVideoID: videoID)
                     
                     return remoteStreams.compactMap { try? Stream(remoteStream: $0) }
                 }
