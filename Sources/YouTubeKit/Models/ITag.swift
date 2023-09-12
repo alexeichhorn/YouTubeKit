@@ -12,11 +12,11 @@ public struct ITag {
     let itag: Int
     
     /// lower side of resolution (e.g. 1080 for 1080p)
-    let videoResolution: Int?
-    
+    public let videoResolution: Int?
+
     /// in kbps
-    let audioBitrate: Int?
-    
+    public let audioBitrate: Int?
+
     init?(_ itag: Int) {
         self.itag = itag
         
@@ -28,19 +28,19 @@ public struct ITag {
         audioBitrate = rates.1
     }
     
-    var isHDR: Bool {
+    public var isHDR: Bool {
         [330, 331, 332, 333, 334, 335, 336, 337].contains(itag)
     }
     
-    var is3D: Bool {
+    public var is3D: Bool {
         [82, 83, 84, 85, 100, 101, 102].contains(itag)
     }
     
-    var isLive: Bool {
+    public var isLive: Bool {
         [91, 92, 93, 94, 95, 96, 132, 151].contains(itag)
     }
     
-    var isDash: Bool {
+    public var isDash: Bool {
         DASH_AUDIO.keys.contains(itag) || DASH_VIDEO.keys.contains(itag)
     }
     
