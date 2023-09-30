@@ -134,6 +134,7 @@ final class YouTubeKitTests: XCTestCase {
             let stream = try await youtube.streams.first!
             XCTAssertEqual(stream.metadata.title, "Le Maroc Vu du Ciel (Documentaire)")
             XCTAssertFalse(stream.metadata.description.isEmpty)
+            XCTAssertEqual(stream.metadata.thumbnail!.url, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/sddefault.jpg"))
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
