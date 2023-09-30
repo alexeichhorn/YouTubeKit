@@ -197,8 +197,9 @@ public class YouTube {
     public var livestreams: [Livestream] {
         get async throws {
             var livestreams = [Livestream]()
-            if let hlsManifestUrl = try await streamingData.hlsManifestUrl.flatMap({ URL(string: $0) }) {
-                livestreams.append(Livestream(url: hlsManifestUrl, streamType: .hls))
+            if let hlsManifestUrl = try await streamingData.hlsManifestUrl.flatMap({ URL(string: $0) }),
+               let videoDetails = try await videoInfo.videoDetails {
+                livestreams.append(Livestream(url: hlsManifestUrl, streamType: .hls, videoDetails: videoDetails))
             }
             return livestreams
         }
