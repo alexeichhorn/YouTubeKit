@@ -140,6 +140,18 @@ final class YouTubeKitTests: XCTestCase {
         }
     }
     
+    func testMetadataLive() async {
+        let youtube = YouTube(videoID: "Z-Nwo-ypKtM")
+        do {
+            let stream = try await youtube.livestreams.first!
+            XCTAssertEqual(stream.metadata.title, "franceinfo - DIRECT TV - actualité france et monde, interviews, documentaires et analyses")
+            XCTAssertFalse(stream.metadata.description.isEmpty)
+            XCTAssertNotNil(stream.metadata.thumbnail!.url)
+        } catch let error {
+            XCTFail("did throw error: \(error)")
+        }
+    }
+    
 
     // MARK: - Performance Measurement
     
