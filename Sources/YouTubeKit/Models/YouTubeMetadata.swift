@@ -7,6 +7,6 @@
 
 import Foundation
 
-struct YouTubeMetadata {
-    
+public struct YouTubeMetadata {
+    public let title: String
 }

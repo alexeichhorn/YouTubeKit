@@ -18,7 +18,9 @@ public struct Stream {
     public let subtype: String
     
     public let fileExtension: FileExtension
-    
+
+    public let metadata: YouTubeMetadata
+
     public let bitrate: Int?
     public let averageBitrate: Int?
     public let isDash: Bool
@@ -40,7 +42,9 @@ public struct Stream {
         self.subtype = mimeTypeComponents[safe: 1] ?? ""
         
         self.fileExtension = FileExtension(mimeType: self.mimeType)
-        
+
+        self.metadata = YouTubeMetadata(title: "")
+
         self.bitrate = format.bitrate
         self.averageBitrate = format.averageBitrate
         self.filesize = format.contentLength.flatMap { Int($0) }
