@@ -43,7 +43,7 @@ public struct Stream {
         
         self.fileExtension = FileExtension(mimeType: self.mimeType)
 
-        self.metadata = YouTubeMetadata(title: videoDetails.title)
+        self.metadata = YouTubeMetadata(title: videoDetails.title, description: videoDetails.shortDescription)
 
         self.bitrate = format.bitrate
         self.averageBitrate = format.averageBitrate

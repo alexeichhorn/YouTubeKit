@@ -151,6 +151,7 @@ class InnerTube {
 
         struct VideoDetails: Decodable {
             let title: String
+            let shortDescription: String
         }
     }
     

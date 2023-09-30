@@ -9,4 +9,5 @@ import Foundation
 
 public struct YouTubeMetadata {
     public let title: String
+    public let description: String
 }

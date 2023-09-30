@@ -131,8 +131,9 @@ final class YouTubeKitTests: XCTestCase {
     func testMetadata() async {
         let youtube = YouTube(videoID: "ApM_KEr1ktQ")
         do {
-            let stream = try await youtube.streams.first
-            XCTAssertEqual(stream?.metadata.title, "Le Maroc Vu du Ciel (Documentaire)")
+            let stream = try await youtube.streams.first!
+            XCTAssertEqual(stream.metadata.title, "Le Maroc Vu du Ciel (Documentaire)")
+            XCTAssertFalse(stream.metadata.description.isEmpty)
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
