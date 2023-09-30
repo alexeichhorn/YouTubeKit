@@ -15,13 +15,7 @@ public struct Livestream {
     
     public let url: URL
     public let streamType: StreamType
-    public var metadata: YouTubeMetadata {
-        .init(
-            title: videoDetails.title,
-            description: videoDetails.shortDescription,
-            thumbnail: videoDetails.thumbnail.thumbnails.map { YouTubeMetadata.Thumbnail(url: $0.url) }.last
-        )
-    }
+    public var metadata: YouTubeMetadata { .metadata(from: videoDetails) }
     
     let videoDetails: InnerTube.VideoInfo.VideoDetails
 }

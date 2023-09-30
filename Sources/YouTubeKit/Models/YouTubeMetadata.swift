@@ -15,4 +15,13 @@ public struct YouTubeMetadata {
     public struct Thumbnail {
         public let url: URL
     }
+
+    @available(iOS 13.0, *)
+    static func metadata(from videoDetails: InnerTube.VideoInfo.VideoDetails) -> Self {
+        YouTubeMetadata(
+            title: videoDetails.title,
+            description: videoDetails.shortDescription,
+            thumbnail: videoDetails.thumbnail.thumbnails.map { YouTubeMetadata.Thumbnail(url: $0.url) }.last
+        )
+    }
 }
