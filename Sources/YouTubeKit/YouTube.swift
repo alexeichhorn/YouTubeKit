@@ -26,8 +26,13 @@ public class YouTube {
     private var _fmtStreams: [Stream]?
     
     private var initialData: Data?
-    private var metadata: YouTubeMetadata?
-    
+    public var metadata: YouTubeMetadata? {
+        get async throws {
+            guard let videoDetails = try await videoInfo.videoDetails else { return nil }
+            return .metadata(from: videoDetails)
+        }
+    }
+
     public let videoID: String
     
     var watchURL: URL {
