@@ -27,7 +27,7 @@ public struct Stream {
     
     private let filesize: Int?
     
-    init(format: InnerTube.StreamingData.Format) throws {
+    init(format: InnerTube.StreamingData.Format, videoDetails: InnerTube.VideoInfo.VideoDetails) throws {
         guard let url = format.url.flatMap({ URL(string: $0) }),
               let itag = ITag(format.itag) else {
             throw YouTubeKitError.extractError
@@ -43,7 +43,7 @@ public struct Stream {
         
         self.fileExtension = FileExtension(mimeType: self.mimeType)
 
-        self.metadata = YouTubeMetadata(title: "")
+        self.metadata = YouTubeMetadata(title: videoDetails.title)
 
         self.bitrate = format.bitrate
         self.averageBitrate = format.averageBitrate

@@ -183,8 +183,11 @@ public class YouTube {
                 try await Extraction.applySignature(streamManifest: &streamManifest, videoInfo: videoInfo, js: js)
             }
             
-            let result = streamManifest.compactMap { try? Stream(format: $0) }
-            
+            let result = streamManifest.compactMap { (format: InnerTube.StreamingData.Format) -> Stream? in
+                guard let details = _videoInfo?.videoDetails else { return nil }
+                return try? Stream(format: format, videoDetails: details)
+            }
+
             _fmtStreams = result
             return result
         }
@@ -213,6 +216,17 @@ public class YouTube {
                 } else {
                     throw YouTubeKitError.extractError
                 }
+            }
+        }
+    }
+
+    /// Video details from video info.
+    var videoDetails: InnerTube.VideoInfo.VideoDetails {
+        get async throws {
+            if let videoDetails = try await videoInfo.videoDetails {
+                return videoDetails
+            } else {
+                throw YouTubeKitError.extractError
             }
         }
     }
