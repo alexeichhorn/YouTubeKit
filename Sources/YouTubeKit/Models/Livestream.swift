@@ -7,7 +7,6 @@
 
 import Foundation
 
-@available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
 public struct Livestream {
     public enum StreamType {
         case hls
@@ -15,7 +14,4 @@ public struct Livestream {
     
     public let url: URL
     public let streamType: StreamType
-    public var metadata: YouTubeMetadata { .metadata(from: videoDetails) }
-    
-    let videoDetails: InnerTube.VideoInfo.VideoDetails
 }

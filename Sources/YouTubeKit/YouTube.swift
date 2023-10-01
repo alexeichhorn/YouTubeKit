@@ -188,10 +188,7 @@ public class YouTube {
                 try await Extraction.applySignature(streamManifest: &streamManifest, videoInfo: videoInfo, js: js)
             }
             
-            let result = streamManifest.compactMap { (format: InnerTube.StreamingData.Format) -> Stream? in
-                guard let details = _videoInfo?.videoDetails else { return nil }
-                return try? Stream(format: format, videoDetails: details)
-            }
+            let result = streamManifest.compactMap { try? Stream(format: $0) }
 
             _fmtStreams = result
             return result
@@ -202,9 +199,8 @@ public class YouTube {
     public var livestreams: [Livestream] {
         get async throws {
             var livestreams = [Livestream]()
-            if let hlsManifestUrl = try await streamingData.hlsManifestUrl.flatMap({ URL(string: $0) }),
-               let videoDetails = try await videoInfo.videoDetails {
-                livestreams.append(Livestream(url: hlsManifestUrl, streamType: .hls, videoDetails: videoDetails))
+            if let hlsManifestUrl = try await streamingData.hlsManifestUrl.flatMap({ URL(string: $0) }) {
+                livestreams.append(Livestream(url: hlsManifestUrl, streamType: .hls))
             }
             return livestreams
         }
