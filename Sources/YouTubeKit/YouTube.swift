@@ -26,6 +26,10 @@ public class YouTube {
     private var _fmtStreams: [Stream]?
     
     private var initialData: Data?
+
+    /// Represents a property that provides metadata for a YouTube video.
+    ///
+    /// This property allows you to retrieve metadata for a YouTube video asynchronously.
     public var metadata: YouTubeMetadata? {
         get async throws {
             guard let videoDetails = try await videoInfo.videoDetails else { return nil }
