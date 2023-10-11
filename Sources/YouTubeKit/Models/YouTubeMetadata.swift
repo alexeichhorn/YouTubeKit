@@ -9,6 +9,7 @@ import Foundation
 
 /// Represents metadata for a YouTube video.
 public struct YouTubeMetadata {
+    
     /// The title of the YouTube video.
     public let title: String
 
@@ -29,7 +30,7 @@ public struct YouTubeMetadata {
     /// - Parameters:
     ///   - videoDetails: The video details from InnerTube.VideoInfo.VideoDetails.
     /// - Returns: A YouTubeMetadata instance.
-    @available(iOS 13.0, *)
+    @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
     static func metadata(from videoDetails: InnerTube.VideoInfo.VideoDetails) -> Self {
         YouTubeMetadata(
             title: videoDetails.title,
@@ -37,4 +38,5 @@ public struct YouTubeMetadata {
             thumbnail: videoDetails.thumbnail.thumbnails.map { YouTubeMetadata.Thumbnail(url: $0.url) }.last
         )
     }
+    
 }
