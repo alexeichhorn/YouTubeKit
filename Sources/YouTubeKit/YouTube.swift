@@ -26,8 +26,17 @@ public class YouTube {
     private var _fmtStreams: [Stream]?
     
     private var initialData: Data?
-    private var metadata: YouTubeMetadata?
-    
+
+    /// Represents a property that provides metadata for a YouTube video.
+    ///
+    /// This property allows you to retrieve metadata for a YouTube video asynchronously.
+    public var metadata: YouTubeMetadata? {
+        get async throws {
+            guard let videoDetails = try await videoInfo.videoDetails else { return nil }
+            return .metadata(from: videoDetails)
+        }
+    }
+
     public let videoID: String
     
     var watchURL: URL {
@@ -184,7 +193,7 @@ public class YouTube {
             }
             
             let result = streamManifest.compactMap { try? Stream(format: $0) }
-            
+
             _fmtStreams = result
             return result
         }
@@ -213,6 +222,17 @@ public class YouTube {
                 } else {
                     throw YouTubeKitError.extractError
                 }
+            }
+        }
+    }
+
+    /// Video details from video info.
+    var videoDetails: InnerTube.VideoInfo.VideoDetails {
+        get async throws {
+            if let videoDetails = try await videoInfo.videoDetails {
+                return videoDetails
+            } else {
+                throw YouTubeKitError.extractError
             }
         }
     }

@@ -142,12 +142,29 @@ class InnerTube {
     struct VideoInfo: Decodable {
         let playabilityStatus: PlayabilityStatus?
         let streamingData: StreamingData?
-        
+        let videoDetails: VideoDetails?
+
         struct PlayabilityStatus: Decodable {
             let status: String?
             let reason: String?
         }
-    }    
+
+        struct VideoDetails: Decodable {
+            let title: String
+            let shortDescription: String
+            let thumbnail: Thumbnail
+
+            struct Thumbnail: Decodable {
+                let thumbnails: [ThumbnailMetadata]
+
+                struct ThumbnailMetadata: Decodable {
+                    let url: URL
+                    let width: Int
+                    let height: Int
+                }
+            }
+        }
+    }
     
     struct StreamingData: Decodable {
         let expiresInSeconds: String?
