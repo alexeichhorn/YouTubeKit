@@ -91,20 +91,20 @@ public struct Stream {
         isProgressive || type == "video"
     }
     
-    public lazy var videoCodec: String? = {
+    public var videoCodec: String? {
         if !isAdaptive || includesVideoTrack {
             return codecs.first
         }
         return nil
-    }()
+    }
     
-    public lazy var audioCodec: String? = {
+    public var audioCodec: String? {
         if !isAdaptive {
             return codecs.last
         } else if includesAudioTrack {
             return codecs.first
         }
         return nil
-    }()
+    }
     
 }
