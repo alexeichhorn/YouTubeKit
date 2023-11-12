@@ -62,7 +62,15 @@ public enum VideoCodec: Codec {
         switch self {
         case .mp4v(_): return true
         case .av1(_): return false
+#if os(watchOS)
+        case .avc1(let version):
+            if version == "64002A" {
+                return false
+            }
+            return true
+#else
         case .avc1(_): return true
+#endif
         case .vp9(_): return false
         case .unknown(_): return false
         }
@@ -116,7 +124,12 @@ public enum AudioCodec: Codec, Equatable {
         switch self {
         case .mp4a(_): return true
         case .opus: return false
+#if os(watchOS)
+        case .ec3: return false
+        case .ac3: return true
+#else
         case .ec3, .ac3: return true
+#endif
         case .unknown(_): return false
         }
     }
@@ -131,4 +144,12 @@ extension Codec {
         lhs.baseCodec == rhs
     }
     
+}
+
+public func ==(lhs: VideoCodec?, rhs: VideoCodec.BaseCodec) -> Bool {
+    lhs?.baseCodec == rhs
+}
+
+public func ==(lhs: AudioCodec?, rhs: AudioCodec.BaseCodec) -> Bool {
+    lhs?.baseCodec == rhs
 }
