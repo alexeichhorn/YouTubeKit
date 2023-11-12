@@ -40,8 +40,16 @@ public struct ITag {
         [91, 92, 93, 94, 95, 96, 132, 151].contains(itag)
     }
     
+    var isSurroundSound: Bool {
+        [380, 328].contains(itag)
+    }
+    
     var isDash: Bool {
         DASH_AUDIO.keys.contains(itag) || DASH_VIDEO.keys.contains(itag)
+    }
+    
+    var isHLS: Bool {
+        HLS_VIDEO.keys.contains(itag)
     }
     
 }
@@ -81,6 +89,17 @@ fileprivate let PROGRESSIVE_VIDEO: [Int: (Int?, Int?)] = [
     151: (720, 24),
     300: (720, 128),
     301: (1080, 128),
+]
+
+fileprivate let HLS_VIDEO: [Int: (Int?, Int?)] = [
+    269: (144, nil),
+    229: (240, nil),
+    230: (360, nil),
+    231: (480, nil),
+    232: (720, nil),
+    270: (1080, nil),
+    319: (1440, nil),
+    321: (2160, nil),
 ]
 
 fileprivate let DASH_VIDEO: [Int: (Int?, Int?)] = [
@@ -160,7 +179,8 @@ fileprivate let DASH_AUDIO: [Int: (Int?, Int?)] = [
     256: (nil, 192),  // MP4
     258: (nil, 384),  // MP4
     325: (nil, nil),  // MP4
-    328: (nil, nil),  // MP4
+    328: (nil, nil),  // MP4 (ec-3 surround)
+    380: (nil, nil),  // MP4 (ac-3 surround)
 ]
 
-fileprivate let ALL_ITAGS = PROGRESSIVE_VIDEO.merging(with: DASH_VIDEO).merging(with: DASH_AUDIO)
+fileprivate let ALL_ITAGS = PROGRESSIVE_VIDEO.merging(with: HLS_VIDEO).merging(with: DASH_VIDEO).merging(with: DASH_AUDIO)
