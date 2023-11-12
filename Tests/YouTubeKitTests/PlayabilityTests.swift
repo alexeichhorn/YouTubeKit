@@ -13,8 +13,12 @@ import AVFoundation
 final class PlayabilityTests: XCTestCase {
     
     private func checkStreamPlayability(stream: YouTubeKit.Stream) async throws -> Bool {
-        let asset = AVAsset(url: stream.url)
-        return try await asset.load(.isPlayable)
+        do {
+            let asset = AVAsset(url: stream.url)
+            return try await asset.load(.isPlayable)
+        } catch {
+            return false
+        }
     }
     
     func testStandardStreamNativePlayability() async {
