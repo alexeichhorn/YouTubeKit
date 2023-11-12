@@ -317,7 +317,7 @@ class Extraction {
         let regex = NSRegularExpression(#"(\w+\/\w+)\;\scodecs=\"([a-zA-Z-0-9.,\s]*)\""#)
         if let mimeTypeResult = regex.firstMatch(in: mimeTypeCodec, group: 1),
            let codecsResult = regex.firstMatch(in: mimeTypeCodec, group: 2) {
-            return (mimeTypeResult.content, codecsResult.content.split(separator: ",").map { String($0) })
+            return (mimeTypeResult.content, codecsResult.content.split(separator: ",").map { String($0).strip(from: " ") })
         }
         throw YouTubeKitError.regexMatchError
     }

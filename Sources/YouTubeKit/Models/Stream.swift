@@ -13,7 +13,8 @@ public struct Stream {
     public let url: URL
     public let itag: ITag
     public let mimeType: String
-    public let codecs: [String]
+    public let videoCodec: VideoCodec?
+    public let audioCodec: AudioCodec?
     public let type: String
     public let subtype: String
     
@@ -32,13 +33,31 @@ public struct Stream {
         
         self.url = url
         self.itag = itag
-        (self.mimeType, self.codecs) = try Extraction.mimeTypeCodec(format.mimeType)
+        
+        let codecs: [String]
+        (self.mimeType, codecs) = try Extraction.mimeTypeCodec(format.mimeType)
         
         let mimeTypeComponents = self.mimeType.components(separatedBy: "/")
         self.type = mimeTypeComponents.first ?? ""
         self.subtype = mimeTypeComponents[safe: 1] ?? ""
         
         self.fileExtension = FileExtension(mimeType: self.mimeType)
+        
+        // codec decoding
+        if codecs.count >= 2 {
+            self.videoCodec = VideoCodec(rawValue: codecs[0])
+            self.audioCodec = AudioCodec(rawValue: codecs[1])
+        } else if let codec = codecs.first {
+            if self.type == "audio" {
+                self.audioCodec = AudioCodec(rawValue: codec)
+                self.videoCodec = nil
+            } else {
+                self.videoCodec = VideoCodec(rawValue: codec)
+                self.audioCodec = nil
+            }
+        } else {
+            throw YouTubeKitError.extractError
+        }
         
         self.bitrate = format.bitrate
         self.averageBitrate = format.averageBitrate
@@ -52,7 +71,12 @@ public struct Stream {
         
         self.url = remoteStream.url
         self.itag = itag
-        self.codecs = [remoteStream.audioCodec, remoteStream.videoCodec].compactMap { $0 }
+        self.videoCodec = remoteStream.videoCodec.map { VideoCodec(rawValue: $0) }
+        self.audioCodec = remoteStream.audioCodec.map { AudioCodec(rawValue: $0) }
+        
+        if self.videoCodec == nil && self.audioCodec == nil {
+            throw YouTubeKitError.extractError
+        }
         
         self.fileExtension = FileExtension(rawValue: remoteStream.ext) ?? .unknown
         
@@ -68,7 +92,7 @@ public struct Stream {
     
     /// whether the stream is DASH
     public var isAdaptive: Bool {
-        codecs.count % 2 == 1
+        videoCodec == nil || audioCodec == nil
     }
     
     /// video and audio in same stream
@@ -91,20 +115,9 @@ public struct Stream {
         isProgressive || type == "video"
     }
     
-    public var videoCodec: String? {
-        if !isAdaptive || includesVideoTrack {
-            return codecs.first
-        }
-        return nil
-    }
-    
-    public var audioCodec: String? {
-        if !isAdaptive {
-            return codecs.last
-        } else if includesAudioTrack {
-            return codecs.first
-        }
-        return nil
+    /// Whether the stream can be played inside the native `AVPlayer`
+    public var isNativelyPlayable: Bool {
+        (videoCodec?.isNativelyPlayable ?? true) && (audioCodec?.isNativelyPlayable ?? true)
     }
     
 }
