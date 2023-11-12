@@ -30,6 +30,10 @@ public extension Collection where Element == Stream {
         filter { $0.itag.videoResolution == resolution }
     }
     
+    func filter(byResolution resolution: (Int?) -> Bool) -> [Stream] {
+        filter { resolution($0.itag.videoResolution) }
+    }
+    
     /// get stream with lowest video resolution
     func lowestResolutionStream() -> Stream? {
         min(byProperty: { $0.itag.videoResolution ?? .max })
