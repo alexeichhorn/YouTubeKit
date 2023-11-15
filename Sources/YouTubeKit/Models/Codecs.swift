@@ -153,3 +153,11 @@ public func ==(lhs: VideoCodec?, rhs: VideoCodec.BaseCodec) -> Bool {
 public func ==(lhs: AudioCodec?, rhs: AudioCodec.BaseCodec) -> Bool {
     lhs?.baseCodec == rhs
 }
+
+public func !=(lhs: VideoCodec?, rhs: VideoCodec.BaseCodec) -> Bool {
+    !(lhs == rhs)
+}
+
+public func !=(lhs: AudioCodec?, rhs: AudioCodec.BaseCodec) -> Bool {
+    !(lhs == rhs)
+}
