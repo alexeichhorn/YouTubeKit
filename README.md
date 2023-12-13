@@ -38,6 +38,7 @@ let lowestAudioBitrate = streams.lowestAudioBitrateStream()
 let highestAudioBitrate = streams.highestAudioBitrateStream()
 let audioOnlyStreams = streams.filterAudioOnly()  // all streams without video track
 let videoOnlyStreams = streams.filterVideoOnly()  // all streams without audio track
+let combinedStreams = streams.filterVideoAndAudio()  // all streams with both video and audio track
 ```
 
 4. Retrieve metadata:
@@ -51,7 +52,7 @@ This will return a `YouTubeMetadata` object.
 To get the video url of type mp4 with the highest available resolution for a given YouTube url:
 ```swift
 let stream = try await YouTube(url: youtubeURL).streams
-                          .filter { $0.isProgressive && $0.subtype == "mp4" }
+                          .filter { $0.isProgressive && $0.fileExtension == .mp4 }
                           .highestResolutionStream()
 
 let streamURL = stream.url                      
@@ -60,17 +61,33 @@ The `isProgressive` parameter is used to filter only streams that contain both v
 
 
 ### Example 2
-To get the best mp4 audio-only url for a given YouTube ID:
+To get the best m4a audio-only url for a given YouTube ID:
 ```swift
 let stream = try await YouTube(videoID: "9bZkp7q19f0").streams
                           .filterAudioOnly()
-                          .filter { $0.subtype == "mp4" }
+                          .filter { $0.fileExtension == .m4a }
                           .highestAudioBitrateStream()
 
 let streamURL = stream.url
 ```
 
+
 ### Example 3
+To play a YouTube video in AVPlayer:
+```swift
+let stream = try await YouTube(videoID: "QdBZY2fkU-0").streams
+                          .filterVideoAndAudio()
+                          .filter { $0.isNativelyPlayable }
+                          .highestResolutionStream()
+
+let player = AVPlayer(url: stream!.url)
+// -> Now present the player however you like
+```
+
+
+
+
+### Example 4
 To get the HLS url for a given YouTube ID of a livestream:
 ```swift
 let hlsManifestUrl = try await YouTube(videoID: "21X5lGlDOfg").livestreams
