@@ -280,6 +280,8 @@ class Extraction {
     class func applySignature(streamManifest: inout [InnerTube.StreamingData.Format], videoInfo: InnerTube.VideoInfo, js: String) throws {
         var cipher = ThrowingLazy(try Cipher(js: js))
         
+        var invalidStreamIndices = [Int]()
+        
         for (i, stream) in streamManifest.enumerated() {
             if let url = stream.url {
                 if url.contains("signature") || (stream.s == nil && (url.contains("&sig=") || url.contains("&lsig="))) {
@@ -288,6 +290,10 @@ class Extraction {
                 }
                 
                 if let cipheredSignature = stream.s {
+                    // Remove the stream from `streamManifest` for now, as signature extraction currently doesn't work most of time
+                    invalidStreamIndices.append(i)
+                    continue // Skip the rest of the code as we are removing this stream
+                    
                     let signature = try cipher.value.getSignature(cipheredSignature: cipheredSignature)
                     
                     os_log("finished descrambling signature for itag=%{public}i", log: log, type: .debug, stream.itag)
@@ -310,6 +316,11 @@ class Extraction {
                     streamManifest[i].url = url
                 }
             }
+        }
+        
+        // Remove invalid streams
+        for index in invalidStreamIndices.reversed() {
+            streamManifest.remove(at: index)
         }
     }
     
