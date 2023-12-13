@@ -15,13 +15,17 @@ public struct Stream {
     public let mimeType: String
     public let videoCodec: VideoCodec?
     public let audioCodec: AudioCodec?
-    public let type: String
-    public let subtype: String
     
     public let fileExtension: FileExtension
     
     public let bitrate: Int?
     public let averageBitrate: Int?
+    
+    @available(*, deprecated, message: "Might be empty if using remote fetching method. Use `videoCodec`, `audioCodec` or `fileExtension` instead.")
+    public let type: String
+        
+    @available(*, deprecated, message: "Might be empty if using remote fetching method. Use `videoCodec`, `audioCodec` or `fileExtension` instead.")
+    public let subtype: String
     
     private let filesize: Int?
     
@@ -84,7 +88,7 @@ public struct Stream {
         self.averageBitrate = remoteStream.averageBitrate
         self.filesize = remoteStream.filesize
         
-        // TODO: properly implement this (-> deprecate `subtype` and `mimeType`)
+        // Backward compatibility for deprecated `subtype` and `mimeType`
         self.type = (remoteStream.videoCodec != nil) ? "video" : "audio"
         self.subtype = ""
         self.mimeType = ""
@@ -107,12 +111,18 @@ public struct Stream {
     
     /// Whether the stream only contains audio.
     public var includesAudioTrack: Bool {
-        isProgressive || type == "audio"
+        audioCodec != nil
     }
     
     /// Whether the stream only contains video.
     public var includesVideoTrack: Bool {
-        isProgressive || type == "video"
+        videoCodec != nil
+    }
+    
+    /// Whether the stream contains both audio and video tracks.
+    /// - note: alias of `isProgressive`
+    @inlinable public var includesVideoAndAudioTrack: Bool {
+        isProgressive
     }
     
     /// Whether the stream can be played inside the native `AVPlayer`

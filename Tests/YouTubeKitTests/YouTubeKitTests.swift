@@ -30,8 +30,11 @@ final class YouTubeKitTests: XCTestCase {
             XCTAssert(streams.count > 0)
             checkStreams(streams)
             
-            let bestAudioStream = streams.filterAudioOnly().filter { $0.subtype == "mp4" }.highestAudioBitrateStream()
+            let bestAudioStreamLegacy = streams.filterAudioOnly().filter { $0.subtype == "mp4" }.highestAudioBitrateStream()
+            let bestAudioStream = streams.filterAudioOnly().filter { $0.fileExtension == .m4a }.highestAudioBitrateStream()
             print(bestAudioStream)
+            
+            XCTAssertEqual(bestAudioStream?.url, bestAudioStreamLegacy?.url)
             
             try await checkStreamReachability(bestAudioStream)
             

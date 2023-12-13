@@ -66,4 +66,9 @@ public extension Collection where Element == Stream {
         filter { $0.includesVideoTrack && !$0.includesAudioTrack }
     }
     
+    /// only returns streams which contain both audio and video
+    func filterVideoAndAudio() -> [Stream] {
+        filter { $0.includesVideoAndAudioTrack }
+    }
+    
 }
