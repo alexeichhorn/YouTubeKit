@@ -40,6 +40,12 @@ let audioOnlyStreams = streams.filterAudioOnly()  // all streams without video t
 let videoOnlyStreams = streams.filterVideoOnly()  // all streams without audio track
 ```
 
+4. Retrieve metadata:
+```swift
+let metadata = try await video.metadata
+```
+This will return a `YouTubeMetadata` object.
+
 
 ### Example 1
 To get the video url of type mp4 with the highest available resolution for a given YouTube url:

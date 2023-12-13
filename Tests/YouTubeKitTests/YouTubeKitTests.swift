@@ -146,7 +146,30 @@ final class YouTubeKitTests: XCTestCase {
             print(streams.count)
             
             try await checkStreamReachability(streams.filterVideoOnly().highestResolutionStream())
-            
+        } catch let error {
+            XCTFail("did throw error: \(error)")
+        }
+    }
+    
+    func testMetadataForOnDemand() async {
+        let youtube = YouTube(videoID: "ApM_KEr1ktQ")
+        do {
+            let metadata = try await youtube.metadata!
+            XCTAssertEqual(metadata.title, "Le Maroc Vu du Ciel (Documentaire)")
+            XCTAssertFalse(metadata.description.isEmpty)
+            XCTAssertEqual(metadata.thumbnail!.url, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/sddefault.jpg"))
+        } catch let error {
+            XCTFail("did throw error: \(error)")
+        }
+    }
+    
+    func testMetadataForLive() async {
+        let youtube = YouTube(videoID: "Z-Nwo-ypKtM")
+        do {
+            let metadata = try await youtube.metadata!
+            XCTAssertEqual(metadata.title, "franceinfo - DIRECT TV - actualité france et monde, interviews, documentaires et analyses")
+            XCTAssertFalse(metadata.description.isEmpty)
+            XCTAssertNotNil(metadata.thumbnail!.url)
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
