@@ -294,6 +294,9 @@ class Extraction {
                     
                     guard var urlComponents = URLComponents(string: url) else { continue } // TODO: fail differently
                     
+                    if urlComponents.queryItems == nil {
+                        urlComponents.queryItems = []
+                    }
                     urlComponents.queryItems?["sig"] = signature
                     
                     if urlComponents.queryItems?.contains(where: { $0.name == "ratebypass" }) ?? false {
