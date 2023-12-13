@@ -30,6 +30,7 @@ public class YouTube {
     /// Represents a property that provides metadata for a YouTube video.
     ///
     /// This property allows you to retrieve metadata for a YouTube video asynchronously.
+    /// - Note: Currently doesn't respect `method` set. It always uses `.local`
     public var metadata: YouTubeMetadata? {
         get async throws {
             guard let videoDetails = try await videoInfo.videoDetails else { return nil }
@@ -222,6 +223,7 @@ public class YouTube {
     }
     
     /// Returns a list of live streams - currently only HLS supported
+    /// - Note: Currently doesn't respect `method` set. It always uses `.local`
     public var livestreams: [Livestream] {
         get async throws {
             var livestreams = [Livestream]()

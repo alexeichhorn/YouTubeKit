@@ -137,6 +137,19 @@ final class YouTubeKitTests: XCTestCase {
         }
     }
     
+    func testLivestreamHlsManifestUrlRemote() async {
+        let youtube = YouTube(videoID: "21X5lGlDOfg", methods: [.remote])
+        do {
+            let livestreams = try await youtube.livestreams
+            XCTAssert(livestreams.count > 0)
+            
+            let hlsURL = livestreams.filter { $0.streamType == .hls }.first?.url
+            XCTAssertTrue(hlsURL!.absoluteString.contains(".m3u8"))
+        } catch let error {
+            XCTFail("did throw error: \(error)")
+        }
+    }
+    
     func testRemoteExtraction() async {
         let youtube = YouTube(videoID: "2lAe1cqCOXo", methods: [.remote])
         do {
@@ -151,8 +164,22 @@ final class YouTubeKitTests: XCTestCase {
         }
     }
     
+    // MARK: - Metadata
+    
     func testMetadataForOnDemand() async {
         let youtube = YouTube(videoID: "ApM_KEr1ktQ")
+        do {
+            let metadata = try await youtube.metadata!
+            XCTAssertEqual(metadata.title, "Le Maroc Vu du Ciel (Documentaire)")
+            XCTAssertFalse(metadata.description.isEmpty)
+            XCTAssertEqual(metadata.thumbnail!.url, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/sddefault.jpg"))
+        } catch let error {
+            XCTFail("did throw error: \(error)")
+        }
+    }
+    
+    func testMetadataForOnDemandWithRemote() async {
+        let youtube = YouTube(videoID: "ApM_KEr1ktQ", methods: [.remote])
         do {
             let metadata = try await youtube.metadata!
             XCTAssertEqual(metadata.title, "Le Maroc Vu du Ciel (Documentaire)")
