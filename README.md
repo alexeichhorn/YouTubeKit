@@ -48,16 +48,19 @@ let metadata = try await video.metadata
 This will return a `YouTubeMetadata` object.
 
 
+
 ### Example 1
-To get the video url of type mp4 with the highest available resolution for a given YouTube url:
+To play a YouTube video in AVPlayer:
 ```swift
-let stream = try await YouTube(url: youtubeURL).streams
-                          .filter { $0.isProgressive && $0.fileExtension == .mp4 }
+let stream = try await YouTube(videoID: "QdBZY2fkU-0").streams
+                          .filterVideoAndAudio()
+                          .filter { $0.isNativelyPlayable }
                           .highestResolutionStream()
 
-let streamURL = stream.url                      
+let player = AVPlayer(url: stream!.url)
+// -> Now present the player however you like
 ```
-The `isProgressive` parameter is used to filter only streams that contain both video and audio.
+The `isNativelyPlayable` parameter is used to filter only streams that are natively decodable on the current operating system and device.
 
 
 ### Example 2
@@ -73,18 +76,15 @@ let streamURL = stream.url
 
 
 ### Example 3
-To play a YouTube video in AVPlayer:
+To get the video url of type mp4 with the highest available resolution for a given YouTube url:
 ```swift
-let stream = try await YouTube(videoID: "QdBZY2fkU-0").streams
-                          .filterVideoAndAudio()
-                          .filter { $0.isNativelyPlayable }
+let stream = try await YouTube(url: youtubeURL).streams
+                          .filter { $0.includesVideoAndAudioTrack && $0.fileExtension == .mp4 }
                           .highestResolutionStream()
 
-let player = AVPlayer(url: stream!.url)
-// -> Now present the player however you like
+let streamURL = stream.url                      
 ```
-
-
+The `isProgressive` parameter is used to filter only streams that contain both video and audio.
 
 
 ### Example 4
