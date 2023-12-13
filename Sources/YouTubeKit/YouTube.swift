@@ -225,7 +225,6 @@ public class YouTube {
                         // make sure only one stream per itag exists
                         for stream in newStreams {
                             if existingITags.insert(stream.itag.itag).inserted {
-                                print(stream)
                                 streams.append(stream)
                             }
                         }
