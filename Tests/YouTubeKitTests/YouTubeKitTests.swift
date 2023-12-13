@@ -34,6 +34,10 @@ final class YouTubeKitTests: XCTestCase {
             let bestAudioStream = streams.filterAudioOnly().filter { $0.fileExtension == .m4a }.highestAudioBitrateStream()
             print(bestAudioStream)
             
+            XCTAssert(!streams.filterVideoOnly().isEmpty)
+            XCTAssert(!streams.filterAudioOnly().isEmpty)
+            XCTAssert(!streams.filterVideoAndAudio().isEmpty)
+            
             XCTAssertEqual(bestAudioStream?.url, bestAudioStreamLegacy?.url)
             
             try await checkStreamReachability(bestAudioStream)
@@ -57,6 +61,10 @@ final class YouTubeKitTests: XCTestCase {
             //print(streams.filterAudioOnly().filter { $0.subtype == "mp4" }.highestAudioBitrateStream()?.url)
             print(streams.filterVideoOnly().highestResolutionStream())
             
+            XCTAssert(!streams.filterVideoOnly().isEmpty)
+            XCTAssert(!streams.filterAudioOnly().isEmpty)
+            XCTAssert(!streams.filterVideoAndAudio().isEmpty)
+            
             try await checkStreamReachability(streams.filterVideoOnly().highestResolutionStream())
             
             // test Cipher initialization directly (in case not lazily loaded)
@@ -79,6 +87,10 @@ final class YouTubeKitTests: XCTestCase {
             //print(streams.filterVideoOnly().highestResolutionStream())
             print(streams.filter { $0.isProgressive && $0.fileExtension == .mp4 }.lowestResolutionStream()!)
             
+            XCTAssert(!streams.filterVideoOnly().isEmpty)
+            XCTAssert(!streams.filterAudioOnly().isEmpty)
+            XCTAssert(!streams.filterVideoAndAudio().isEmpty)
+            
             try await checkStreamReachability(streams.filterVideoOnly().highestResolutionStream())
             
             // test Cipher initialization directly (in case not lazily loaded)
@@ -100,6 +112,10 @@ final class YouTubeKitTests: XCTestCase {
             //print(streams.filterAudioOnly().filter { $0.subtype == "mp4" }.highestAudioBitrateStream()?.url)
             print(streams.filterVideoOnly().highestResolutionStream())
             
+            XCTAssert(!streams.filterVideoOnly().isEmpty)
+            XCTAssert(!streams.filterAudioOnly().isEmpty)
+            XCTAssert(!streams.filterVideoAndAudio().isEmpty)
+            
             try await checkStreamReachability(streams.filterVideoOnly().highestResolutionStream())
             
             // test Cipher initialization directly (in case not lazily loaded)
@@ -119,6 +135,11 @@ final class YouTubeKitTests: XCTestCase {
             print(streams.count)
             //print(streams.filterAudioOnly().filter { $0.subtype == "mp4" }.highestAudioBitrateStream()?.url)
             print(streams.filter { $0.isProgressive }.highestResolutionStream())
+            
+            XCTAssert(!streams.filterVideoOnly().isEmpty)
+            XCTAssert(!streams.filterAudioOnly().isEmpty)
+            XCTAssert(!streams.filterVideoAndAudio().isEmpty)
+            
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
@@ -157,6 +178,10 @@ final class YouTubeKitTests: XCTestCase {
             XCTAssert(streams.count > 0)
             checkStreams(streams)
             print(streams.count)
+            
+            XCTAssert(!streams.filterVideoOnly().isEmpty)
+            XCTAssert(!streams.filterAudioOnly().isEmpty)
+            XCTAssert(!streams.filterVideoAndAudio().isEmpty)
             
             try await checkStreamReachability(streams.filterVideoOnly().highestResolutionStream())
         } catch let error {
