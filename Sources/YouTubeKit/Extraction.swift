@@ -86,6 +86,12 @@ class Extraction {
         throw YouTubeKitError.regexMatchError
     }
     
+    /// Tries to find video info in watch html directly
+    class func getVideoInfo(fromHTML html: String) throws -> InnerTube.VideoInfo {
+        let pattern = NSRegularExpression(#"ytInitialPlayerResponse\s*=\s*"#)
+        return try parseForObject(InnerTube.VideoInfo.self, html: html, precedingRegex: pattern)
+    }
+    
     /// Return the playability status and status explanation of the video
     /// For example, a video may have a status of LOGIN\_REQUIRED, and an explanation
     /// of "This is a private video. Please sign in to verify that you may see it."

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os.log
 
 @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
 public class YouTube {
@@ -43,6 +44,10 @@ public class YouTube {
         URL(string: "https://youtube.com/watch?v=\(videoID)")!
     }
     
+    private var extendedWatchURL: URL {
+        URL(string: "https://youtube.com/watch?v=\(videoID)&bpctr=9999999999&has_verified=1")!
+    }
+    
     var embedURL: URL {
         URL(string: "https://www.youtube.com/embed/\(videoID)")!
     }
@@ -57,6 +62,8 @@ public class YouTube {
     let allowOAuthCache: Bool
     
     let methods: [ExtractionMethod]
+    
+    private let log = OSLog(YouTube.self)
     
     /// - parameter methods: Methods used to extract streams from the video - ordered by priority (Default: only local)
     public init(videoID: String, proxies: [String: URL] = [:], useOAuth: Bool = false, allowOAuthCache: Bool = false, methods: [ExtractionMethod] = [.local]) {
@@ -84,7 +91,7 @@ public class YouTube {
             if let cached = _watchHTML {
                 return cached
             }
-            var request = URLRequest(url: watchURL)
+            var request = URLRequest(url: extendedWatchURL)
             request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
             request.setValue("en-US,en", forHTTPHeaderField: "accept-language")
             let (data, _) = try await URLSession.shared.data(for: request)
@@ -218,6 +225,7 @@ public class YouTube {
                         // make sure only one stream per itag exists
                         for stream in newStreams {
                             if existingITags.insert(stream.itag.itag).inserted {
+                                print(stream)
                                 streams.append(stream)
                             }
                         }
@@ -285,6 +293,16 @@ public class YouTube {
                 return cached
             }
             
+            // try extracting video infos from watch html directly as well
+            let watchVideoInfoTask = Task<InnerTube.VideoInfo?, Never> {
+                do {
+                    return try await Extraction.getVideoInfo(fromHTML: watchHTML)
+                } catch let error {
+                    os_log("Couldn't extract video info from main watch html: %{public}@", log: log, type: .debug, error.localizedDescription)
+                    return nil
+                }
+            }
+            
             let innertubeClients: [InnerTube.ClientType] = [.ios, .android]
             
             let results: [Result<InnerTube.VideoInfo, Error>] = await innertubeClients.concurrentMap { [videoID, useOAuth, allowOAuthCache] client in
@@ -308,6 +326,11 @@ public class YouTube {
                 case .failure(let error):
                     errors.append(error)
                 }
+            }
+            
+            // append potentially extracted video info (with least priority)
+            if let watchVideoInfo = await watchVideoInfoTask.value {
+                videoInfos.append(watchVideoInfo)
             }
             
             if videoInfos.isEmpty {
