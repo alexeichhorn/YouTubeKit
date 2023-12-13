@@ -13,7 +13,7 @@ class Cipher {
     
     let js: String
     
-    private let transformPlan: [String]
+    private let transformPlan: [(func: JSFunction, param: Int)]
     private let transformMap: [String: JSFunction]
     
     private let jsFuncPatterns =  [
@@ -30,16 +30,18 @@ class Cipher {
     
     init(js: String) throws {
         self.js = js
-        self.transformPlan = try Cipher.getTransformPlan(js: js)
+        
+        let rawTransformPlan = try Cipher.getRawTransformPlan(js: js)
 
         let varRegex = NSRegularExpression(#"^\$*\w+\W"#)
-        guard let varMatch = varRegex.firstMatch(in: transformPlan[0], group: 0) else {
+        guard let varMatch = varRegex.firstMatch(in: rawTransformPlan[0], group: 0) else {
             throw YouTubeKitError.regexMatchError
         }
         var variable = varMatch.content
         _ = variable.popLast()
         
         self.transformMap = try Cipher.getTransformMap(js: js, variable: variable)
+        self.transformPlan = try Cipher.getDecodedTransformPlan(rawPlan: rawTransformPlan, variable: variable, transformMap: transformMap)
         
         self.throttlingPlan = try Cipher.getThrottlingPlan(js: js)
         self.throttlingArray = try Cipher.getThrottlingFunctionArray(js: js)
@@ -83,10 +85,24 @@ class Cipher {
     }
     
     /// Decipher the signature
-    func getSignature(cipheredSignature: String) -> String {
+    func getSignature(cipheredSignature: String) -> String? {
         var signature = Array(cipheredSignature)
         
-        // TODO: apply transform functions
+        guard !transformPlan.isEmpty else {
+            return nil
+        }
+        
+        // apply transform functions
+        for (function, param) in transformPlan {
+            switch function {
+            case .reverse:
+                signature.reverse()
+            case .splice:
+                signature = Array(signature.dropFirst(param))
+            case .swap:
+                (signature[0], signature[param % signature.count]) = (signature[param % signature.count], signature[0])
+            }
+        }
         
         return String(signature)
     }
@@ -133,7 +149,7 @@ class Cipher {
     
     /// Extract the "transform plan".
     /// The "transform plan" is the functions that the ciphered signature is cycled through to obtain the actual signature.
-    class func getTransformPlan(js: String) throws -> [String] {
+    class func getRawTransformPlan(js: String) throws -> [String] {
         let name = try getInitialFunctionName(js: js)
         let pattern = NSRegularExpression(NSRegularExpression.escapedPattern(for: name) + #"=function\(\w\)\{[a-z=\.\(\"\)]*;(.*);(?:.+)\}"#)
         os_log("getting transform plan", log: log, type: .debug)
@@ -141,6 +157,33 @@ class Cipher {
             return match.content.components(separatedBy: ";")
         }
         throw YouTubeKitError.regexMatchError
+    }
+    
+    /// Transforms raw transform plan in to a decoded transform plan with functions and parameters
+    /// - Note: returns empty array if transformation failed
+    class func getDecodedTransformPlan(rawPlan: [String], variable: String, transformMap: [String: JSFunction]) throws -> [(func: JSFunction, param: Int)] {
+        let pattern = try NSRegularExpression(pattern: NSRegularExpression.escapedPattern(for: variable) + #"\.(.+)\(.+,(\d+)\)"#) // expecting e.g. "wP.Nl(a,65)"
+        
+        var result: [(func: JSFunction, param: Int)] = []
+        
+        for functionCall in rawPlan {
+            guard let (_, matchGroups) = pattern.allMatches(in: functionCall, includingGroups: [1, 2]).first,
+                  let functionName = matchGroups[1]?.content,
+                  let parameter = matchGroups[2]?.content
+            else {
+                os_log("failed to decode function call %{public}@", log: log, type: .error, functionCall)
+                return []
+            }
+            
+            guard let decodedParameter = Int(parameter) else { return [] }
+            guard let function = transformMap[functionName] else {
+                os_log("failed to find function %{public}@", log: log, type: .error, functionName)
+                return []
+            }
+            
+            result.append((func: function, param: decodedParameter))
+        }
+        return result
     }
     
     /// Extract the "transform object".

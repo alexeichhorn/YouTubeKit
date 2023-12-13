@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os.log
 
 @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
 public class YouTube {
@@ -16,7 +17,7 @@ public class YouTube {
     private static var __js: String? // caches js between calls
     private static var __jsURL: URL?
     
-    private var _videoInfo: InnerTube.VideoInfo?
+    private var _videoInfos: [InnerTube.VideoInfo]?
     
     private var _watchHTML: String?
     private var _embedHTML: String?
@@ -33,8 +34,7 @@ public class YouTube {
     /// - Note: Currently doesn't respect `method` set. It always uses `.local`
     public var metadata: YouTubeMetadata? {
         get async throws {
-            guard let videoDetails = try await videoInfo.videoDetails else { return nil }
-            return .metadata(from: videoDetails)
+            return .metadata(from: try await videoDetails)
         }
     }
 
@@ -42,6 +42,10 @@ public class YouTube {
     
     var watchURL: URL {
         URL(string: "https://youtube.com/watch?v=\(videoID)")!
+    }
+    
+    private var extendedWatchURL: URL {
+        URL(string: "https://youtube.com/watch?v=\(videoID)&bpctr=9999999999&has_verified=1")!
     }
     
     var embedURL: URL {
@@ -58,6 +62,8 @@ public class YouTube {
     let allowOAuthCache: Bool
     
     let methods: [ExtractionMethod]
+    
+    private let log = OSLog(YouTube.self)
     
     /// - parameter methods: Methods used to extract streams from the video - ordered by priority (Default: only local)
     public init(videoID: String, proxies: [String: URL] = [:], useOAuth: Bool = false, allowOAuthCache: Bool = false, methods: [ExtractionMethod] = [.local]) {
@@ -85,7 +91,7 @@ public class YouTube {
             if let cached = _watchHTML {
                 return cached
             }
-            var request = URLRequest(url: watchURL)
+            var request = URLRequest(url: extendedWatchURL)
             request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
             request.setValue("en-US,en", forHTTPHeaderField: "accept-language")
             let (data, _) = try await URLSession.shared.data(for: request)
@@ -112,7 +118,7 @@ public class YouTube {
     /// check whether the video is available
     public func checkAvailability() async throws {
         let (status, messages) = try Extraction.playabilityStatus(watchHTML: await watchHTML)
-        let streamingData = try await videoInfo.streamingData
+        let streamingData = try await videoInfos.map { $0.streamingData }
 
         for reason in messages {
             switch status {
@@ -126,7 +132,7 @@ public class YouTube {
                 }
             case .error:
                 throw YouTubeKitError.videoUnavailable
-            case .liveStream where streamingData?.hlsManifestUrl == nil :
+            case .liveStream where streamingData.allSatisfy { $0?.hlsManifestUrl == nil } :
                 throw YouTubeKitError.liveStreamError
             case .ok, .none, .liveStream:
                 continue
@@ -193,20 +199,39 @@ public class YouTube {
             let result = try await Task.retry(with: methods) { method in
                 switch method {
                 case .local:
-                    var streamManifest = Extraction.applyDescrambler(streamData: try await streamingData)
+                    let allStreamingData = try await self.streamingData
+                    let videoInfos = try await self.videoInfos
                     
-                    do {
-                        try await Extraction.applySignature(streamManifest: &streamManifest, videoInfo: videoInfo, js: js)
-                    } catch {
-                        // to force an update to the js file, we clear the cache and retry
-                        _js = nil
-                        _jsURL = nil
-                        YouTube.__js = nil
-                        YouTube.__jsURL = nil
-                        try await Extraction.applySignature(streamManifest: &streamManifest, videoInfo: videoInfo, js: js)
+                    var streams = [Stream]()
+                    var existingITags = Set<Int>()
+                    
+                    for (streamingData, videoInfo) in zip(allStreamingData, videoInfos) {
+                        
+                        var streamManifest = Extraction.applyDescrambler(streamData: streamingData)
+                        
+                        do {
+                            try await Extraction.applySignature(streamManifest: &streamManifest, videoInfo: videoInfo, js: js)
+                        } catch {
+                            // to force an update to the js file, we clear the cache and retry
+                            _js = nil
+                            _jsURL = nil
+                            YouTube.__js = nil
+                            YouTube.__jsURL = nil
+                            try await Extraction.applySignature(streamManifest: &streamManifest, videoInfo: videoInfo, js: js)
+                        }
+                        
+                        let newStreams = streamManifest.compactMap { try? Stream(format: $0) }
+                        
+                        // make sure only one stream per itag exists
+                        for stream in newStreams {
+                            if existingITags.insert(stream.itag.itag).inserted {
+                                print(stream)
+                                streams.append(stream)
+                            }
+                        }
                     }
                     
-                    return streamManifest.compactMap { try? Stream(format: $0) }
+                    return streams
                     
                     
                 case .remote(let serverURL):
@@ -227,21 +252,22 @@ public class YouTube {
     public var livestreams: [Livestream] {
         get async throws {
             var livestreams = [Livestream]()
-            if let hlsManifestUrl = try await streamingData.hlsManifestUrl.flatMap({ URL(string: $0) }) {
-                livestreams.append(Livestream(url: hlsManifestUrl, streamType: .hls))
-            }
+            let hlsURLs = try await streamingData.compactMap { $0.hlsManifestUrl }.compactMap { URL(string: $0) }
+            livestreams.append(contentsOf: hlsURLs.map { Livestream(url: $0, streamType: .hls) })
             return livestreams
         }
     }
 
     /// streaming data from video info
-    var streamingData: InnerTube.StreamingData {
+    var streamingData: [InnerTube.StreamingData] {
         get async throws {
-            if let streamingData = try await videoInfo.streamingData {
+            let streamingData = try await videoInfos.compactMap { $0.streamingData }
+            if !streamingData.isEmpty {
                 return streamingData
             } else {
                 try await bypassAgeGate()
-                if let streamingData = try await videoInfo.streamingData {
+                let streamingData = try await videoInfos.compactMap { $0.streamingData }
+                if !streamingData.isEmpty {
                     return streamingData
                 } else {
                     throw YouTubeKitError.extractError
@@ -253,7 +279,7 @@ public class YouTube {
     /// Video details from video info.
     var videoDetails: InnerTube.VideoInfo.VideoDetails {
         get async throws {
-            if let videoDetails = try await videoInfo.videoDetails {
+            if let videoDetails = try await videoInfos.lazy.compactMap({ $0.videoDetails }).first {
                 return videoDetails
             } else {
                 throw YouTubeKitError.extractError
@@ -261,17 +287,58 @@ public class YouTube {
         }
     }
     
-    var videoInfo: InnerTube.VideoInfo {
+    var videoInfos: [InnerTube.VideoInfo] {
         get async throws {
-            if let cached = _videoInfo {
+            if let cached = _videoInfos {
                 return cached
             }
             
-            let innertube = InnerTube(useOAuth: useOAuth, allowCache: allowOAuthCache)
+            // try extracting video infos from watch html directly as well
+            let watchVideoInfoTask = Task<InnerTube.VideoInfo?, Never> {
+                do {
+                    return try await Extraction.getVideoInfo(fromHTML: watchHTML)
+                } catch let error {
+                    os_log("Couldn't extract video info from main watch html: %{public}@", log: log, type: .debug, error.localizedDescription)
+                    return nil
+                }
+            }
             
-            let innertubeResponse = try await innertube.player(videoID: videoID)
-            _videoInfo = innertubeResponse
-            return innertubeResponse
+            let innertubeClients: [InnerTube.ClientType] = [.ios, .android]
+            
+            let results: [Result<InnerTube.VideoInfo, Error>] = await innertubeClients.concurrentMap { [videoID, useOAuth, allowOAuthCache] client in
+                let innertube = InnerTube(client: client, useOAuth: useOAuth, allowCache: allowOAuthCache)
+                
+                do {
+                    let innertubeResponse = try await innertube.player(videoID: videoID)
+                    return .success(innertubeResponse)
+                } catch let error {
+                    return .failure(error)
+                }
+            }
+            
+            var videoInfos = [InnerTube.VideoInfo]()
+            var errors = [Error]()
+            
+            for result in results {
+                switch result {
+                case .success(let innertubeResponse):
+                    videoInfos.append(innertubeResponse)
+                case .failure(let error):
+                    errors.append(error)
+                }
+            }
+            
+            // append potentially extracted video info (with least priority)
+            if let watchVideoInfo = await watchVideoInfoTask.value {
+                videoInfos.append(watchVideoInfo)
+            }
+            
+            if videoInfos.isEmpty {
+                throw errors.first ?? YouTubeKitError.extractError
+            }
+            
+            _videoInfos = videoInfos
+            return videoInfos
         }
     }
     
@@ -283,7 +350,7 @@ public class YouTube {
             throw YouTubeKitError.videoAgeRestricted
         }
         
-        _videoInfo = innertubeResponse
+        _videoInfos = [innertubeResponse]
     }
     
     /// Interface to query both adaptive (DASH) and progressive streams.
