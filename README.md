@@ -94,3 +94,19 @@ let hlsManifestUrl = try await YouTube(videoID: "21X5lGlDOfg").livestreams
                           .filter { $0.streamType == .hls }
                           .first
 ```
+
+
+## Remote Fallback
+With local YouTube extractors, there is the problem that YouTube might suddenly change their unofficial API, which can break your existing shipped app. It can take days or weeks for a user to update your app, rendering some features unusable for them in the meantime. To prevent this, YouTubeKit includes a feature that allows you to enable a remote fallback. As soon as local extraction fails, it switches to using a remote server running `youtube-dl`, that is updated frequently.
+Simply specify the `methods` YouTubeKit should use in priority order. The rest of the API remains exactly the same — everything is handled by the library.
+```swift
+let streams = try await YouTube(videoID: "2lAe1cqCOXo", methods: [.local, .remote]).streams
+```
+You can also set `methods: [.remote]` if you only want remote extraction.
+
+#### How It Works
+Since streams are often bound to the device's location or IP address, we can't simply use `youtube-dl` on a remote server and send back the stream urls. Instead, the server makes all HTTP requests through the requesting device. When starting remote extraction, the device opens a WebSocket connection to the remote server. The server then sends multiple HTTP request packets to the device. The device executes these on behalf of the server and returns the full response. The server then processes and extracts the stream urls and sends them back to the device. This ensures the retrieved stream urls are playable on your device.
+
+
+
+
