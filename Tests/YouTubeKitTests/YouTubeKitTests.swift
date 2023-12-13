@@ -28,9 +28,13 @@ final class YouTubeKitTests: XCTestCase {
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
+            checkStreams(streams)
             
-            let bestAudioStream = streams.filterAudioOnly().filter { $0.subtype == "mp4" }.highestAudioBitrateStream()
+            let bestAudioStreamLegacy = streams.filterAudioOnly().filter { $0.subtype == "mp4" }.highestAudioBitrateStream()
+            let bestAudioStream = streams.filterAudioOnly().filter { $0.fileExtension == .m4a }.highestAudioBitrateStream()
             print(bestAudioStream)
+            
+            XCTAssertEqual(bestAudioStream?.url, bestAudioStreamLegacy?.url)
             
             try await checkStreamReachability(bestAudioStream)
             
@@ -47,6 +51,7 @@ final class YouTubeKitTests: XCTestCase {
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
+            checkStreams(streams)
             print(streams)
             print(streams.count)
             //print(streams.filterAudioOnly().filter { $0.subtype == "mp4" }.highestAudioBitrateStream()?.url)
@@ -63,14 +68,16 @@ final class YouTubeKitTests: XCTestCase {
     }
     
     func testSampleVideo3() async {
-        let youtube = YouTube(videoID: "QlucwdDN1hw")
+        let youtube = YouTube(videoID: "dkpDjd2nHgo", methods: [.remote])
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
+            checkStreams(streams)
             print(streams)
             print(streams.count)
             //print(streams.filterAudioOnly().filter { $0.subtype == "mp4" }.highestAudioBitrateStream()?.url)
-            print(streams.filterVideoOnly().highestResolutionStream())
+            //print(streams.filterVideoOnly().highestResolutionStream())
+            print(streams.filter { $0.isProgressive && $0.fileExtension == .mp4 }.lowestResolutionStream()!)
             
             try await checkStreamReachability(streams.filterVideoOnly().highestResolutionStream())
             
@@ -87,6 +94,7 @@ final class YouTubeKitTests: XCTestCase {
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
+            checkStreams(streams)
             print(streams)
             print(streams.count)
             //print(streams.filterAudioOnly().filter { $0.subtype == "mp4" }.highestAudioBitrateStream()?.url)
@@ -107,6 +115,7 @@ final class YouTubeKitTests: XCTestCase {
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
+            checkStreams(streams)
             print(streams.count)
             //print(streams.filterAudioOnly().filter { $0.subtype == "mp4" }.highestAudioBitrateStream()?.url)
             print(streams.filter { $0.isProgressive }.highestResolutionStream())
@@ -115,7 +124,7 @@ final class YouTubeKitTests: XCTestCase {
         }
     }
     
-    func testHlsManifestUrl() async {
+    func testLivestreamHlsManifestUrl() async {
         let youtube = YouTube(videoID: "21X5lGlDOfg")
         do {
             let livestreams = try await youtube.livestreams
@@ -128,8 +137,49 @@ final class YouTubeKitTests: XCTestCase {
         }
     }
     
+    func testLivestreamHlsManifestUrlRemote() async {
+        let youtube = YouTube(videoID: "21X5lGlDOfg", methods: [.remote])
+        do {
+            let livestreams = try await youtube.livestreams
+            XCTAssert(livestreams.count > 0)
+            
+            let hlsURL = livestreams.filter { $0.streamType == .hls }.first?.url
+            XCTAssertTrue(hlsURL!.absoluteString.contains(".m3u8"))
+        } catch let error {
+            XCTFail("did throw error: \(error)")
+        }
+    }
+    
+    func testRemoteExtraction() async {
+        let youtube = YouTube(videoID: "2lAe1cqCOXo", methods: [.remote])
+        do {
+            let streams = try await youtube.streams
+            XCTAssert(streams.count > 0)
+            checkStreams(streams)
+            print(streams.count)
+            
+            try await checkStreamReachability(streams.filterVideoOnly().highestResolutionStream())
+        } catch let error {
+            XCTFail("did throw error: \(error)")
+        }
+    }
+    
+    // MARK: - Metadata
+    
     func testMetadataForOnDemand() async {
         let youtube = YouTube(videoID: "ApM_KEr1ktQ")
+        do {
+            let metadata = try await youtube.metadata!
+            XCTAssertEqual(metadata.title, "Le Maroc Vu du Ciel (Documentaire)")
+            XCTAssertFalse(metadata.description.isEmpty)
+            XCTAssertEqual(metadata.thumbnail!.url, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/sddefault.jpg"))
+        } catch let error {
+            XCTFail("did throw error: \(error)")
+        }
+    }
+    
+    func testMetadataForOnDemandWithRemote() async {
+        let youtube = YouTube(videoID: "ApM_KEr1ktQ", methods: [.remote])
         do {
             let metadata = try await youtube.metadata!
             XCTAssertEqual(metadata.title, "Le Maroc Vu du Ciel (Documentaire)")
@@ -181,6 +231,24 @@ final class YouTubeKitTests: XCTestCase {
         
         if let httpResponse = response as? HTTPURLResponse {
             XCTAssertEqual(httpResponse.statusCode, 200, "Stream is not reachable (got status code \(httpResponse.statusCode))")
+        }
+    }
+    
+    private func checkStreams(_ streams: [YouTubeKit.Stream]) {
+        for stream in streams {
+            XCTAssert(stream.videoCodec != nil || stream.audioCodec != nil)
+            
+            if let videoCodec = stream.videoCodec {
+                if case .unknown(_) = videoCodec {
+                    XCTFail("Video codec is unknown")
+                }
+            }
+            
+            if let audioCodec = stream.audioCodec {
+                if case .unknown(_) = audioCodec {
+                    XCTFail("Audio codec is unknown")
+                }
+            }
         }
     }
     

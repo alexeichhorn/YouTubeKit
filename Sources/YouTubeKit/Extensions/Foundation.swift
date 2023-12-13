@@ -114,6 +114,17 @@ extension Collection where Element: Hashable {
         return result
     }
     
+    func removeDuplicates() -> [Element] {
+        var result = [Element]()
+        var seen = Set<Element>()
+        for element in self {
+            if seen.insert(element).inserted {
+                result.append(element)
+            }
+        }
+        return result
+    }
+    
 }
 
 extension Dictionary {

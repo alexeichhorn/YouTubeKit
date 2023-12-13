@@ -30,6 +30,7 @@ public class YouTube {
     /// Represents a property that provides metadata for a YouTube video.
     ///
     /// This property allows you to retrieve metadata for a YouTube video asynchronously.
+    /// - Note: Currently doesn't respect `method` set. It always uses `.local`
     public var metadata: YouTubeMetadata? {
         get async throws {
             guard let videoDetails = try await videoInfo.videoDetails else { return nil }
@@ -56,16 +57,26 @@ public class YouTube {
     let useOAuth: Bool
     let allowOAuthCache: Bool
     
-    public init(videoID: String, proxies: [String: URL] = [:], useOAuth: Bool = false, allowOAuthCache: Bool = false) {
+    let methods: [ExtractionMethod]
+    
+    /// - parameter methods: Methods used to extract streams from the video - ordered by priority (Default: only local)
+    public init(videoID: String, proxies: [String: URL] = [:], useOAuth: Bool = false, allowOAuthCache: Bool = false, methods: [ExtractionMethod] = [.local]) {
         self.videoID = videoID
         self.useOAuth = useOAuth
         self.allowOAuthCache = allowOAuthCache
         // TODO: install proxies if needed
+        
+        if methods.isEmpty {
+            self.methods = [.local]
+        } else {
+            self.methods = methods.removeDuplicates()
+        }
     }
     
-    public convenience init(url: URL, proxies: [String: URL] = [:], useOAuth: Bool = false, allowOAuthCache: Bool = false) {
+    /// - parameter methods: Methods used to extract streams from the video - ordered by priority (Default: only local)
+    public convenience init(url: URL, proxies: [String: URL] = [:], useOAuth: Bool = false, allowOAuthCache: Bool = false, methods: [ExtractionMethod] = [.local]) {
         let videoID = Extraction.extractVideoID(from: url.absoluteString) ?? ""
-        self.init(videoID: videoID, proxies: proxies, useOAuth: useOAuth, allowOAuthCache: allowOAuthCache)
+        self.init(videoID: videoID, proxies: proxies, useOAuth: useOAuth, allowOAuthCache: allowOAuthCache, methods: methods)
     }
     
     
@@ -179,27 +190,40 @@ public class YouTube {
                 return cached
             }
             
-            var streamManifest = Extraction.applyDescrambler(streamData: try await streamingData)
-            
-            do {
-                try await Extraction.applySignature(streamManifest: &streamManifest, videoInfo: videoInfo, js: js)
-            } catch {
-                // to force an update to the js file, we clear the cache and retry
-                _js = nil
-                _jsURL = nil
-                YouTube.__js = nil
-                YouTube.__jsURL = nil
-                try await Extraction.applySignature(streamManifest: &streamManifest, videoInfo: videoInfo, js: js)
+            let result = try await Task.retry(with: methods) { method in
+                switch method {
+                case .local:
+                    var streamManifest = Extraction.applyDescrambler(streamData: try await streamingData)
+                    
+                    do {
+                        try await Extraction.applySignature(streamManifest: &streamManifest, videoInfo: videoInfo, js: js)
+                    } catch {
+                        // to force an update to the js file, we clear the cache and retry
+                        _js = nil
+                        _jsURL = nil
+                        YouTube.__js = nil
+                        YouTube.__jsURL = nil
+                        try await Extraction.applySignature(streamManifest: &streamManifest, videoInfo: videoInfo, js: js)
+                    }
+                    
+                    return streamManifest.compactMap { try? Stream(format: $0) }
+                    
+                    
+                case .remote(let serverURL):
+                    let remoteClient = RemoteYouTubeClient(serverURL: serverURL)
+                    let remoteStreams = try await remoteClient.extractStreams(forVideoID: videoID)
+                    
+                    return remoteStreams.compactMap { try? Stream(remoteStream: $0) }
+                }
             }
             
-            let result = streamManifest.compactMap { try? Stream(format: $0) }
-
             _fmtStreams = result
             return result
         }
     }
     
     /// Returns a list of live streams - currently only HLS supported
+    /// - Note: Currently doesn't respect `method` set. It always uses `.local`
     public var livestreams: [Livestream] {
         get async throws {
             var livestreams = [Livestream]()
