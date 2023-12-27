@@ -32,6 +32,7 @@ This will return an array of `Stream` objects.
 3. Filter for the stream you want by using a normal filter or with provided helper functions like:
 ```swift
 let streamsAt1080 = streams.streams(withExactResolution: 1080)
+let streamsBelow1080 = streams.filter(byResolution: $0 < 1080)  // all streams with resolution lower than 1080p
 let lowestResolution = streams.lowestResolutionStream()
 let highestResolution = streams.highestResolutionStream()
 let lowestAudioBitrate = streams.lowestAudioBitrateStream()
