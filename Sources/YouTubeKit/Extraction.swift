@@ -86,6 +86,12 @@ class Extraction {
         throw YouTubeKitError.regexMatchError
     }
     
+    /// Tries to find video info in watch html directly
+    class func getVideoInfo(fromHTML html: String) throws -> InnerTube.VideoInfo {
+        let pattern = NSRegularExpression(#"ytInitialPlayerResponse\s*=\s*"#)
+        return try parseForObject(InnerTube.VideoInfo.self, html: html, precedingRegex: pattern)
+    }
+    
     /// Return the playability status and status explanation of the video
     /// For example, a video may have a status of LOGIN\_REQUIRED, and an explanation
     /// of "This is a private video. Please sign in to verify that you may see it."
@@ -280,6 +286,8 @@ class Extraction {
     class func applySignature(streamManifest: inout [InnerTube.StreamingData.Format], videoInfo: InnerTube.VideoInfo, js: String) throws {
         var cipher = ThrowingLazy(try Cipher(js: js))
         
+        var invalidStreamIndices = [Int]()
+        
         for (i, stream) in streamManifest.enumerated() {
             if let url = stream.url {
                 if url.contains("signature") || (stream.s == nil && (url.contains("&sig=") || url.contains("&lsig="))) {
@@ -288,12 +296,19 @@ class Extraction {
                 }
                 
                 if let cipheredSignature = stream.s {
+                    // Remove the stream from `streamManifest` for now, as signature extraction currently doesn't work most of time
+                    invalidStreamIndices.append(i)
+                    continue // Skip the rest of the code as we are removing this stream
+                    
                     let signature = try cipher.value.getSignature(cipheredSignature: cipheredSignature)
                     
                     os_log("finished descrambling signature for itag=%{public}i", log: log, type: .debug, stream.itag)
                     
                     guard var urlComponents = URLComponents(string: url) else { continue } // TODO: fail differently
                     
+                    if urlComponents.queryItems == nil {
+                        urlComponents.queryItems = []
+                    }
                     urlComponents.queryItems?["sig"] = signature
                     
                     if urlComponents.queryItems?.contains(where: { $0.name == "ratebypass" }) ?? false {
@@ -308,6 +323,11 @@ class Extraction {
                 }
             }
         }
+        
+        // Remove invalid streams
+        for index in invalidStreamIndices.reversed() {
+            streamManifest.remove(at: index)
+        }
     }
     
     /// Breaks up the data in the ``type`` key of the manifest, which contains the
@@ -317,7 +337,7 @@ class Extraction {
         let regex = NSRegularExpression(#"(\w+\/\w+)\;\scodecs=\"([a-zA-Z-0-9.,\s]*)\""#)
         if let mimeTypeResult = regex.firstMatch(in: mimeTypeCodec, group: 1),
            let codecsResult = regex.firstMatch(in: mimeTypeCodec, group: 2) {
-            return (mimeTypeResult.content, codecsResult.content.split(separator: ",").map { String($0) })
+            return (mimeTypeResult.content, codecsResult.content.split(separator: ",").map { String($0).strip(from: " ") })
         }
         throw YouTubeKitError.regexMatchError
     }

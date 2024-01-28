@@ -16,6 +16,7 @@ class InnerTube {
         let screen: String?
         let apiKey: String
         let userAgent: String?
+        var playerParams: String? = nil
 
         var androidSdkVersion: Int? = nil
         
@@ -42,8 +43,8 @@ class InnerTube {
     // overview of clients: https://github.com/zerodytrash/YouTube-Internal-Clients
     private let defaultClients = [
         ClientType.web: Client(name: "WEB", version: "2.20200720.00.02", screen: nil, apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", userAgent: "Mozilla/5.0"),
-        ClientType.android: Client(name: "ANDROID", version: "17.31.35", screen: nil, apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", userAgent: "com.google.android.youtube/17.31.35 (Linux; U; Android 11) gzip", androidSdkVersion: 30),
-        ClientType.androidMusic: Client(name: "ANDROID_MUSIC", version: "5.16.51", screen: nil, apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", userAgent: "com.google.android.apps.youtube.music/17.31.35 (Linux; U; Android 11) gzip", androidSdkVersion: 30),
+        ClientType.android: Client(name: "ANDROID", version: "17.31.35", screen: nil, apiKey: "AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w", userAgent: "com.google.android.youtube/17.31.35 (Linux; U; Android 11) gzip", playerParams: "CgIQBg==", androidSdkVersion: 30),
+        ClientType.androidMusic: Client(name: "ANDROID_MUSIC", version: "5.16.51", screen: nil, apiKey: "AIzaSyAOghZGza2MQSZkY_zfZ370N-PUdXEo8AI", userAgent: "com.google.android.apps.youtube.music/5.16.51 (Linux; U; Android 11) gzip", playerParams: "CgIQBg==", androidSdkVersion: 30),
         ClientType.webEmbed: Client(name: "WEB_EMBEDDED_PLAYER", version: "1.20220731.00.00", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", userAgent: "Mozilla/5.0"),
         ClientType.androidEmbed: Client(name: "ANDROID_EMBEDDED_PLAYER", version: "17.31.35", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", userAgent: "com.google.android.youtube/17.31.35 (Linux; U; Android 11) gzip"),
         ClientType.tvEmbed: Client(name: "TVHTML5_SIMPLY_EMBEDDED_PLAYER", version: "2.0", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", userAgent: "Mozilla/5.0"),
@@ -64,6 +65,7 @@ class InnerTube {
     private let apiKey: String
     private let context: Context
     private let headers: [String: String]
+    private let playerParams: String
     
     private let baseURL = "https://www.youtube.com/youtubei/v1"
     
@@ -71,6 +73,7 @@ class InnerTube {
         self.context = defaultClients[client]!.context
         self.apiKey = defaultClients[client]!.apiKey
         self.headers = defaultClients[client]!.headers
+        self.playerParams = defaultClients[client]!.playerParams ?? "8AEB"
         self.useOAuth = useOAuth
         self.allowCache = allowCache
         
@@ -142,12 +145,29 @@ class InnerTube {
     struct VideoInfo: Decodable {
         let playabilityStatus: PlayabilityStatus?
         let streamingData: StreamingData?
-        
+        let videoDetails: VideoDetails?
+
         struct PlayabilityStatus: Decodable {
             let status: String?
             let reason: String?
         }
-    }    
+
+        struct VideoDetails: Decodable {
+            let title: String
+            let shortDescription: String
+            let thumbnail: Thumbnail
+
+            struct Thumbnail: Decodable {
+                let thumbnails: [ThumbnailMetadata]
+
+                struct ThumbnailMetadata: Decodable {
+                    let url: URL
+                    let width: Int
+                    let height: Int
+                }
+            }
+        }
+    }
     
     struct StreamingData: Decodable {
         let expiresInSeconds: String?
@@ -181,14 +201,14 @@ class InnerTube {
     private struct PlayerRequest: Encodable {
         let context: Context
         let videoId: String
-        let params: String = "8AEB"
+        let params: String
         //let paybackContext
         let contentCheckOk: Bool = true
         let racyCheckOk: Bool = true
     }
     
     private func playerRequest(forVideoID videoID: String) -> PlayerRequest {
-        PlayerRequest(context: context, videoId: videoID)
+        PlayerRequest(context: context, videoId: videoID, params: playerParams)
     }
     
     func player(videoID: String) async throws -> VideoInfo {

@@ -30,6 +30,10 @@ public extension Collection where Element == Stream {
         filter { $0.itag.videoResolution == resolution }
     }
     
+    func filter(byResolution resolution: (Int?) -> Bool) -> [Stream] {
+        filter { resolution($0.itag.videoResolution) }
+    }
+    
     /// get stream with lowest video resolution
     func lowestResolutionStream() -> Stream? {
         min(byProperty: { $0.itag.videoResolution ?? .max })
@@ -60,6 +64,11 @@ public extension Collection where Element == Stream {
     /// only returns streams which contain video, but no audio
     func filterVideoOnly() -> [Stream] {
         filter { $0.includesVideoTrack && !$0.includesAudioTrack }
+    }
+    
+    /// only returns streams which contain both audio and video
+    func filterVideoAndAudio() -> [Stream] {
+        filter { $0.includesVideoAndAudioTrack }
     }
     
 }
