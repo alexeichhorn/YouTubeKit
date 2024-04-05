@@ -126,6 +126,27 @@ final class YouTubeKitTests: XCTestCase {
         }
     }
     
+    func testSampleVideo5() async {
+        let youtube = YouTube(videoID: "ObUBUKOn-bo")
+        do {
+            let streams = try await youtube.streams
+            XCTAssert(streams.count > 0)
+            checkStreams(streams)
+            
+            XCTAssert(!streams.filterVideoOnly().isEmpty)
+            XCTAssert(!streams.filterAudioOnly().isEmpty)
+            XCTAssert(!streams.filterVideoAndAudio().isEmpty)
+            
+            try await checkStreamReachability(streams.filterVideoOnly().highestResolutionStream())
+            
+            // test Cipher initialization directly (in case not lazily loaded)
+            await XCTAssertNoThrow(try await Cipher(js: youtube.js), "Failed to initialize Cipher")
+            
+        } catch let error {
+            XCTFail("did throw error: \(error)")
+        }
+    }
+    
     func testSampleVideoAgeRestricted() async {
         let youtube = YouTube(videoID: "HtVdAasjOgU") // EX_8ZjT2sO4
         do {

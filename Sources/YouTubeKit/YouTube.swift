@@ -336,6 +336,9 @@ public class YouTube {
                 throw errors.first ?? YouTubeKitError.extractError
             }
             
+            // remove video infos with incorrect videoID
+            videoInfos = videoInfos.filter { $0.videoDetails?.videoId == videoID }
+            
             _videoInfos = videoInfos
             return videoInfos
         }
@@ -347,6 +350,11 @@ public class YouTube {
         
         if innertubeResponse.playabilityStatus?.status == "UNPLAYABLE" || innertubeResponse.playabilityStatus?.status == "LOGIN_REQUIRED" {
             throw YouTubeKitError.videoAgeRestricted
+        }
+        
+        if innertubeResponse.videoDetails?.videoId != videoID {
+            os_log("Skipping player responses from tvEmbed client. Got player responses for %{public}@ instead of %{public}@", log: log, type: .info, innertubeResponse.videoDetails?.videoId ?? "nil", videoID)
+            throw YouTubeKitError.extractError
         }
         
         _videoInfos = [innertubeResponse]
