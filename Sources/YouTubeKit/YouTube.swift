@@ -205,7 +205,7 @@ public class YouTube {
                     var streams = [Stream]()
                     var existingITags = Set<Int>()
                     
-                    for (streamingData, videoInfo) in zip(allStreamingData, videoInfos) {
+                    func process(streamingData: InnerTube.StreamingData, videoInfo: InnerTube.VideoInfo) async throws {
                         
                         var streamManifest = Extraction.applyDescrambler(streamData: streamingData)
                         
@@ -227,6 +227,18 @@ public class YouTube {
                             if existingITags.insert(stream.itag.itag).inserted {
                                 streams.append(stream)
                             }
+                        }
+                    }
+                    
+                    for (streamingData, videoInfo) in zip(allStreamingData, videoInfos) {
+                        try await process(streamingData: streamingData, videoInfo: videoInfo)
+                    }
+                    
+                    // if no progressive (audio+video) tracks were found, try to do one more call to maybe get them
+                    if !streams.contains(where: { $0.includesVideoAndAudioTrack }) {
+                        if let videoInfo = try? await loadAdditionalVideoInfos(forClient: .mediaConnectFrontend), let streamingData = videoInfo.streamingData {
+                            os_log("Found no progressive streams. Called mediaConnectFrontend client to get additional video infos", log: log, type: .info)
+                            try await process(streamingData: streamingData, videoInfo: videoInfo)
                         }
                     }
                     
@@ -345,6 +357,12 @@ public class YouTube {
             _videoInfos = videoInfos
             return videoInfos
         }
+    }
+    
+    private func loadAdditionalVideoInfos(forClient client: InnerTube.ClientType) async throws -> InnerTube.VideoInfo {
+        let innertube = InnerTube(client: client, useOAuth: useOAuth, allowCache: allowOAuthCache)
+        let innertubeResponse = try await innertube.player(videoID: videoID)
+        return innertubeResponse
     }
     
     private func bypassAgeGate() async throws {
