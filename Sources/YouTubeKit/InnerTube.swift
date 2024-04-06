@@ -53,7 +53,7 @@ class InnerTube {
         ClientType.mediaConnectFrontend: Client(name: "MEDIA_CONNECT_FRONTEND", version: "0.1", screen: nil, apiKey: "", userAgent: nil)
     ]
     
-    enum ClientType {
+    enum ClientType: String {
         case web, android, androidMusic, webEmbed, androidEmbed, tvEmbed, ios, iosMusic, mediaConnectFrontend
     }
     

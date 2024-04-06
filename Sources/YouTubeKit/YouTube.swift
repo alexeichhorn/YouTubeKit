@@ -364,8 +364,15 @@ public class YouTube {
     
     private func loadAdditionalVideoInfos(forClient client: InnerTube.ClientType) async throws -> InnerTube.VideoInfo {
         let innertube = InnerTube(client: client, useOAuth: useOAuth, allowCache: allowOAuthCache)
-        let innertubeResponse = try await innertube.player(videoID: videoID)
-        return innertubeResponse
+        let videoInfo = try await innertube.player(videoID: videoID)
+        
+        // ignore if incorrect videoID
+        if videoInfo.videoDetails?.videoId != videoID {
+            os_log("Skipping player response from %{public}@ client. Got player response for %{public}@ instead of %{public}@", log: log, type: .info, client.rawValue, videoInfo.videoDetails?.videoId ?? "nil", videoID)
+            throw YouTubeKitError.extractError
+        }
+        
+        return videoInfo
     }
     
     private func bypassAgeGate() async throws {
@@ -377,7 +384,7 @@ public class YouTube {
         }
         
         if innertubeResponse.videoDetails?.videoId != videoID {
-            os_log("Skipping player responses from tvEmbed client. Got player responses for %{public}@ instead of %{public}@", log: log, type: .info, innertubeResponse.videoDetails?.videoId ?? "nil", videoID)
+            os_log("Skipping player response from tvEmbed client. Got player response for %{public}@ instead of %{public}@", log: log, type: .info, innertubeResponse.videoDetails?.videoId ?? "nil", videoID)
             throw YouTubeKitError.extractError
         }
         
