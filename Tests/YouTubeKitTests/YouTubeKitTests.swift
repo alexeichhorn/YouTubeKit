@@ -40,7 +40,7 @@ final class YouTubeKitTests: XCTestCase {
             
             XCTAssertEqual(bestAudioStream?.url, bestAudioStreamLegacy?.url)
             
-            try await checkStreamReachability(bestAudioStream)
+            try await checkAllStreamReachability(streams)
             
             // test Cipher initialization directly (in case not lazily loaded)
             await XCTAssertNoThrow(try await Cipher(js: youtube.js), "Failed to initialize Cipher")
@@ -65,7 +65,7 @@ final class YouTubeKitTests: XCTestCase {
             XCTAssert(!streams.filterAudioOnly().isEmpty)
             XCTAssert(!streams.filterVideoAndAudio().isEmpty)
             
-            try await checkStreamReachability(streams.filterVideoOnly().highestResolutionStream())
+            try await checkAllStreamReachability(streams)
             
             // test Cipher initialization directly (in case not lazily loaded)
             await XCTAssertNoThrow(try await Cipher(js: youtube.js), "Failed to initialize Cipher")
@@ -91,7 +91,7 @@ final class YouTubeKitTests: XCTestCase {
             XCTAssert(!streams.filterAudioOnly().isEmpty)
             XCTAssert(!streams.filterVideoAndAudio().isEmpty)
             
-            try await checkStreamReachability(streams.filterVideoOnly().highestResolutionStream())
+            try await checkAllStreamReachability(streams)
             
             // test Cipher initialization directly (in case not lazily loaded)
             await XCTAssertNoThrow(try await Cipher(js: youtube.js), "Failed to initialize Cipher")
@@ -116,7 +116,7 @@ final class YouTubeKitTests: XCTestCase {
             XCTAssert(!streams.filterAudioOnly().isEmpty)
             XCTAssert(!streams.filterVideoAndAudio().isEmpty)
             
-            try await checkStreamReachability(streams.filterVideoOnly().highestResolutionStream())
+            try await checkAllStreamReachability(streams)
             
             // test Cipher initialization directly (in case not lazily loaded)
             await XCTAssertNoThrow(try await Cipher(js: youtube.js), "Failed to initialize Cipher")
@@ -137,7 +137,7 @@ final class YouTubeKitTests: XCTestCase {
             XCTAssert(!streams.filterAudioOnly().isEmpty)
             XCTAssert(!streams.filterVideoAndAudio().isEmpty)
             
-            try await checkStreamReachability(streams.filterVideoOnly().highestResolutionStream())
+            try await checkAllStreamReachability(streams)
             
             // test Cipher initialization directly (in case not lazily loaded)
             await XCTAssertNoThrow(try await Cipher(js: youtube.js), "Failed to initialize Cipher")
@@ -204,7 +204,7 @@ final class YouTubeKitTests: XCTestCase {
             XCTAssert(!streams.filterAudioOnly().isEmpty)
             XCTAssert(!streams.filterVideoAndAudio().isEmpty)
             
-            try await checkStreamReachability(streams.filterVideoOnly().highestResolutionStream())
+            try await checkAllStreamReachability(streams)
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
@@ -278,6 +278,30 @@ final class YouTubeKitTests: XCTestCase {
         if let httpResponse = response as? HTTPURLResponse {
             XCTAssertEqual(httpResponse.statusCode, 200, "Stream is not reachable (got status code \(httpResponse.statusCode))")
         }
+    }
+    
+    private func isStreamReachable(_ stream: YouTubeKit.Stream?) async throws -> Bool {
+        guard let stream else { return false }
+        
+        var request = URLRequest(url: stream.url)
+        request.httpMethod = "head"
+        let (_, response) = try await URLSession.shared.data(for: request)
+        
+        if let httpResponse = response as? HTTPURLResponse {
+            return httpResponse.statusCode == 200
+        }
+        
+        return false
+    }
+    
+    private func checkAllStreamReachability(_ streams: [YouTubeKit.Stream]) async throws {
+        var numNonReachable = 0
+        for stream in streams {
+            if try await !isStreamReachable(stream) {
+                numNonReachable += 1
+            }
+        }
+        XCTAssert(numNonReachable == 0, "\(numNonReachable)/\(streams.count) streams are not reachable")
     }
     
     private func checkStreams(_ streams: [YouTubeKit.Stream]) {
