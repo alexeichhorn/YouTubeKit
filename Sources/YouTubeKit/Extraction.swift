@@ -320,11 +320,12 @@ class Extraction {
                 
                 // apply throttling "n" signature
                 if let initialN = urlComponents.queryItems?["n"] {
-                    let newN = try cipher.value.calculateN(initialN: Array(initialN))
+                    let newN = try cipher.value.calculateN(initialN: initialN)
                     urlComponents.queryItems?["n"] = newN
                     
-                    let url = urlComponents.url?.absoluteString ?? url
-                    streamManifest[i].url = url
+                    if newN.isEmpty {
+                        invalidStreamIndices.append(i)
+                    }
                 }
                 
                 

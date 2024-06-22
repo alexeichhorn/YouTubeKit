@@ -43,32 +43,32 @@ class Cipher {
         self.transformMap = try Cipher.getTransformMap(js: js, variable: variable)
         self.transformPlan = try Cipher.getDecodedTransformPlan(rawPlan: rawTransformPlan, variable: variable, transformMap: transformMap)
         
-        //self.throttlingPlan = try Cipher.getThrottlingPlan(js: js)
-        //self.throttlingArray = try Cipher.getThrottlingFunctionArray(js: js)
         self.nParameterFunction = try Cipher.getNParameterFunction(js: js)
     }
     
     /// Converts n to the correct value to prevent throttling.
-    func calculateN(initialN: [Character]) throws -> String {
-        if let newN = calculatedN[String(initialN)] {
+    func calculateN(initialN: String) throws -> String {
+        if let newN = calculatedN[initialN] {
             return newN
         }
         
         guard let context = JSContext() else {
-            return "" // TODO: raise error
+            os_log("failed to create JSContext", log: Cipher.log, type: .error)
+            return ""
         }
         
         context.evaluateScript(nParameterFunction)
         
         let function = context.objectForKeyedSubscript("processNSignature")
-        let result = function?.call(withArguments: [String(initialN)])
+        let result = function?.call(withArguments: [initialN])
         
         guard let result, result.isString, let newN = result.toString() else {
-            return "" // TODO: raise error
+            os_log("failed to calculate n", log: Cipher.log, type: .error)
+            return ""
         }
         
         // cache the result
-        calculatedN[String(initialN)] = newN
+        calculatedN[initialN] = newN
         
         return newN
     }
