@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import JavaScriptCore
 import os.log
 
 @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
@@ -21,10 +22,11 @@ class Cipher {
         NSRegularExpression(#"\w+\[(\"\w+\")\]\(\w,(\d+)\)"#)
     ]
     
-    private let throttlingPlan: [(String, String, String?)]
-    private let throttlingArray: [ThrottlingJSExpression]
+    //private let throttlingPlan: [(String, String, String?)]
+    //private let throttlingArray: [ThrottlingJSExpression]
+    private let nParameterFunction: String
     
-    private var calculatedN: String?
+    private var calculatedN = [String: String]()
     
     private static let log = OSLog(Cipher.self)
     
@@ -43,45 +45,34 @@ class Cipher {
         self.transformMap = try Cipher.getTransformMap(js: js, variable: variable)
         self.transformPlan = try Cipher.getDecodedTransformPlan(rawPlan: rawTransformPlan, variable: variable, transformMap: transformMap)
         
-        self.throttlingPlan = try Cipher.getThrottlingPlan(js: js)
-        self.throttlingArray = try Cipher.getThrottlingFunctionArray(js: js)
+        //self.throttlingPlan = try Cipher.getThrottlingPlan(js: js)
+        //self.throttlingArray = try Cipher.getThrottlingFunctionArray(js: js)
+        self.nParameterFunction = try Cipher.getNParameterFunction(js: js)
     }
     
-    // TODO: set correct result type
     /// Converts n to the correct value to prevent throttling.
     func calculateN(initialN: [Character]) throws -> String {
-        if let calculatedN = calculatedN {
-            return calculatedN
+        if let newN = calculatedN[String(initialN)] {
+            return newN
         }
         
-        return "" // TODO: implement
-        
-        /*for i in 0..<throttlingArray.count {
-            if case .stringValue("b") = throttlingArray[i] {
-                throttlingArray[i] = initialN
-            }
+        guard let context = JSContext() else {
+            return "" // TODO: raise error
         }
         
-        for step in throttlingPlan {
-            let currentFunction = throttlingArray[Int(step.0) ?? 0]
-            
-            guard currentFunction.isCallable else {
-                os_log("Function at %i is not callable. Throttling array: %@", step.0, throttlingArray)
-                throw YouTubeKitError.extractError
-            }
-            
-            let firstArgument = throttlingArray[Int(step.1) ?? 0]
-            
-            if let thirdStep = step.2 {
-                let secondArgument = throttlingArray[Int(thirdStep) ?? 0]
-                currentFunction.execute(on: firstArgument, and: secondArgument)
-            } else {
-                currentFunction.execute(on: firstArgument)
-            }
+        context.evaluateScript(nParameterFunction)
+        
+        let function = context.objectForKeyedSubscript("processNSignature")
+        let result = function?.call(withArguments: [String(initialN)])
+        
+        guard let result, result.isString, let newN = result.toString() else {
+            return "" // TODO: raise error
         }
         
-        calculatedN = initialN.lazy.joined()
-        return calculatedN!*/
+        // cache the result
+        calculatedN[String(initialN)] = newN
+        
+        return newN
     }
     
     /// Decipher the signature
@@ -281,7 +272,7 @@ class Cipher {
     }
     
     /// Extract the "c" array.
-    class func getThrottlingFunctionArray(js: String) throws -> [ThrottlingJSExpression] {
+    /*class func getThrottlingFunctionArray(js: String) throws -> [ThrottlingJSExpression] {
         let rawCode = try getThrottlingFunctionCode(js: js)
         
         let arrayRegex = NSRegularExpression(#",c=\["#)
@@ -371,7 +362,7 @@ class Cipher {
             }
         }
         return transformSteps
-    }
+    }*/
     
     enum JSFunction {
         case reverse
@@ -399,6 +390,22 @@ class Cipher {
         }
         
         throw YouTubeKitError.regexMatchError
+    }
+    
+    
+    // MARK: - n parameter function
+    
+    private class func getNParameterFunction(js: String) throws -> String {
+        
+        //let pattern = NSRegularExpression(#"\.get\("n"\)\)&&\(b=(?P<nfunc>[a-zA-Z0-9$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z0-9]\)"#)
+        
+        let parts = js.replacingOccurrences(of: "\n", with: "").components(separatedBy: "var b=a.split(\"\")")
+        
+        guard parts.count > 1 else {
+            return ""
+        }
+        
+        return #"function processNSignature(a) { var b=a.split("")"# + parts[1].components(separatedBy: #"return b.join("")"#)[0] + #";return b.join(""); }"#
     }
     
 }

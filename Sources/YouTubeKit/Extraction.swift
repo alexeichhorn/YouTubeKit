@@ -290,37 +290,46 @@ class Extraction {
         
         for (i, stream) in streamManifest.enumerated() {
             if let url = stream.url {
-                if url.contains("signature") || (stream.s == nil && (url.contains("&sig=") || url.contains("&lsig="))) {
-                    os_log("signature found, skip decipher", log: log, type: .debug)
-                    continue
+                guard var urlComponents = URLComponents(string: url) else { continue } // TODO: fail differently
+                
+                if urlComponents.queryItems == nil {
+                    urlComponents.queryItems = []
                 }
                 
-                if let cipheredSignature = stream.s {
-                    // Remove the stream from `streamManifest` for now, as signature extraction currently doesn't work most of time
-                    invalidStreamIndices.append(i)
-                    continue // Skip the rest of the code as we are removing this stream
+                let signatureFound = url.contains("signature") || (stream.s == nil && (url.contains("&sig=") || url.contains("&lsig=")))
+                
+                if !signatureFound {
                     
-                    let signature = try cipher.value.getSignature(cipheredSignature: cipheredSignature)
-                    
-                    os_log("finished descrambling signature for itag=%{public}i", log: log, type: .debug, stream.itag)
-                    
-                    guard var urlComponents = URLComponents(string: url) else { continue } // TODO: fail differently
-                    
-                    if urlComponents.queryItems == nil {
-                        urlComponents.queryItems = []
+                    // apply "s" signature
+                    if let cipheredSignature = stream.s {
+                        // Remove the stream from `streamManifest` for now, as signature extraction currently doesn't work most of time
+                        invalidStreamIndices.append(i)
+                        continue // Skip the rest of the code as we are removing this stream
+                        
+                        let signature = try cipher.value.getSignature(cipheredSignature: cipheredSignature)
+                        
+                        os_log("finished descrambling signature for itag=%{public}i", log: log, type: .debug, stream.itag)
+                        
+                        urlComponents.queryItems?["sig"] = signature
                     }
-                    urlComponents.queryItems?["sig"] = signature
                     
-                    if urlComponents.queryItems?.contains(where: { $0.name == "ratebypass" }) ?? false {
-                        let initialN = urlComponents.queryItems?["n"] ?? ""
-                        let newN = try cipher.value.calculateN(initialN: Array(initialN))
-                        urlComponents.queryItems?["n"] = newN
-                    }
+                } else {
+                    os_log("signature found, skip decipher", log: log, type: .debug)
+                }
+                
+                
+                // apply throttling "n" signature
+                if let initialN = urlComponents.queryItems?["n"] {
+                    let newN = try cipher.value.calculateN(initialN: Array(initialN))
+                    urlComponents.queryItems?["n"] = newN
                     
                     let url = urlComponents.url?.absoluteString ?? url
-                    
                     streamManifest[i].url = url
                 }
+                
+                
+                let url = urlComponents.url?.absoluteString ?? url
+                streamManifest[i].url = url
             }
         }
         
