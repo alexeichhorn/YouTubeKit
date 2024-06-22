@@ -314,7 +314,7 @@ class Extraction {
                     }
                     
                 } else {
-                    os_log("signature found, skip decipher", log: log, type: .debug)
+                    // os_log("signature found, skip decipher", log: log, type: .debug)
                 }
                 
                 

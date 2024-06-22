@@ -22,8 +22,6 @@ class Cipher {
         NSRegularExpression(#"\w+\[(\"\w+\")\]\(\w,(\d+)\)"#)
     ]
     
-    //private let throttlingPlan: [(String, String, String?)]
-    //private let throttlingArray: [ThrottlingJSExpression]
     private let nParameterFunction: String
     
     private var calculatedN = [String: String]()
@@ -97,14 +95,6 @@ class Cipher {
         
         return String(signature)
     }
-    
-    /// Parse the Javascript transform function.
-    /// Break a JavaScript transform function down into a two element tuple containing the function name and some integer-based argument.
-    /*func parseFunction(jsFunction: String) -> (String, Int) {
-        for pattern in jsFuncPatterns {
-            if let parseMatch = pattern.firstMatch(in: jsFunction, group: <#T##Int?#>)
-        }
-    }*/
     
     
     // MARK: - Static Functions
@@ -245,124 +235,6 @@ class Cipher {
         
         return String(js[match.start...])
     }
-    
-    enum ThrottlingJSExpression {
-        case unshift
-        case reverse
-        case push
-        case swap
-        case cipherFunction
-        case nestedSplice
-        case splice
-        case prepend
-        case intValue(Int)
-        case stringValue(String)
-        case array([ThrottlingJSExpression?])
-        
-        var isCallable: Bool {
-            switch self {
-            case .array(_), .stringValue(_), .intValue(_): return false
-            default: return true
-            }
-        }
-        
-        func execute(on argument: ThrottlingJSExpression, and secondArgument: ThrottlingJSExpression? = nil) {
-            
-        }
-    }
-    
-    /// Extract the "c" array.
-    /*class func getThrottlingFunctionArray(js: String) throws -> [ThrottlingJSExpression] {
-        let rawCode = try getThrottlingFunctionCode(js: js)
-        
-        let arrayRegex = NSRegularExpression(#",c=\["#)
-        guard let match = arrayRegex.firstMatch(in: rawCode) else {
-            throw YouTubeKitError.regexMatchError
-        }
-        
-        let arrayRaw = try Extraction.findObjectFromStartpoint(html: rawCode, startPoint: rawCode.index(before: match.end))
-        let strArray = try Parser.throttlingArraySplit(jsArray: arrayRaw)
-        
-        var convertedArray = [ThrottlingJSExpression?]()
-        for el in strArray {
-            if let intValue = Int(el) {
-                convertedArray.append(.intValue(intValue))
-            }
-            
-            if el == "null" {
-                convertedArray.append(nil)
-                continue
-            }
-            
-            if el.starts(with: "\"") && el.hasSuffix("\"") { // remove quotation marks
-                convertedArray.append(.stringValue(String(el.dropFirst().dropLast())))
-                continue
-            }
-            
-            if el.starts(with: "function") {
-                let mapper = [
-                    (NSRegularExpression(#"\{for\(\w=\(\w%\w\.length\+\w\.length\)%\w\.length;\w--;\)\w\.unshift\(\w.pop\(\)\)\}"#), ThrottlingJSExpression.unshift),
-                    (NSRegularExpression(#"\{\w\.reverse\(\)\}"#), .reverse),
-                    (NSRegularExpression(#"\{\w\.push\(\w\)\}"#), .push),
-                    (NSRegularExpression(#";var\s\w=\w\[0\];\w\[0\]=\w\[\w\];\w\[\w\]=\w\}"#), .swap),
-                    (NSRegularExpression(#"case\s\d+"#), .cipherFunction),
-                    (NSRegularExpression(#"\w\.splice\(0,1,\w\.splice\(\w,1,\w\[0\]\)\[0\]\)"#), .nestedSplice),
-                    (NSRegularExpression(#";\w\.splice\(\w,1\)\}"#), .splice),
-                    (NSRegularExpression(#"\w\.splice\(-\w\)\.reverse\(\)\.forEach\(function\(\w\)\{\w\.unshift\(\w\)\}\)"#), .prepend),
-                    (NSRegularExpression(#"for\(var \w=\w\.length;\w;\)\w\.push\(\w\.splice\(--\w,1\)\[0\]\)\}"#), .reverse)
-                ]
-                
-                var found = false
-                for (pattern, fn) in mapper {
-                    if pattern.matches(el) {
-                        convertedArray.append(fn)
-                        found = true
-                    }
-                }
-                
-                if found {
-                    continue
-                }
-            }
-            
-            convertedArray.append(.stringValue(el))
-        }
-        
-        // replace null elements with array itself
-        for i in 0..<convertedArray.count {
-            if convertedArray[i] == nil {
-                convertedArray[i] = .array(convertedArray)
-            }
-        }
-        
-        return convertedArray.compactMap { $0 }
-    }
-    
-    /// The "throttling plan" is a list of tuples used for calling functions in the c array. The first element of the tuple is the index of the
-    // function to call, and any remaining elements of the tuple are arguments to pass to that function.
-    class func getThrottlingPlan(js: String) throws -> [(String, String, String?)] {
-        let rawCode = try getThrottlingFunctionCode(js: js)
-        
-        let planRegex = NSRegularExpression(#"try\{"#)
-        guard let match = planRegex.firstMatch(in: rawCode) else {
-            throw YouTubeKitError.regexMatchError
-        }
-        
-        let transformPlanRaw = try Extraction.findObjectFromStartpoint(html: rawCode, startPoint: rawCode.index(before: match.end))
-        
-        let stepRegex = NSRegularExpression(#"c\[(\d+)\]\(c\[(\d+)\](,c(\[(\d+)\]))?\)"#)
-        let matches = stepRegex.allMatches(in: transformPlanRaw, includingGroups: [0, 1, 4])
-        var transformSteps = [(String, String, String?)]()
-        
-        for (_, groupMatches) in matches {
-            if groupMatches[4]?.content != "" {
-                transformSteps.append((groupMatches[0]!.content, groupMatches[1]!.content, groupMatches[4]?.content))
-            } else {
-                transformSteps.append((groupMatches[0]!.content, groupMatches[1]!.content, nil))
-            }
-        }
-        return transformSteps
-    }*/
     
     enum JSFunction {
         case reverse
