@@ -6,7 +6,9 @@
 //
 
 import Foundation
+#if canImport(JavaScriptCore)
 import JavaScriptCore
+#endif
 import os.log
 
 @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
@@ -52,6 +54,7 @@ class Cipher {
             return newN
         }
         
+#if canImport(JavaScriptCore)
         guard let context = JSContext() else {
             os_log("failed to create JSContext", log: Cipher.log, type: .error)
             return ""
@@ -71,6 +74,9 @@ class Cipher {
         calculatedN[initialN] = newN
         
         return newN
+#else
+        return ""
+#endif
     }
     
     /// Decipher the signature
