@@ -12,7 +12,6 @@ public struct Stream {
     
     public let url: URL
     public let itag: ITag
-    public let mimeType: String
     public let videoCodec: VideoCodec?
     public let audioCodec: AudioCodec?
     
@@ -20,6 +19,9 @@ public struct Stream {
     
     public let bitrate: Int?
     public let averageBitrate: Int?
+    
+    @available(*, deprecated, message: "Might be empty if using remote fetching method. Use `videoCodec`, `audioCodec` or `fileExtension` instead.")
+    public let mimeType: String
     
     @available(*, deprecated, message: "Might be empty if using remote fetching method. Use `videoCodec`, `audioCodec` or `fileExtension` instead.")
     public let type: String
