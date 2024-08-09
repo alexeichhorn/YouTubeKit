@@ -317,7 +317,7 @@ public class YouTube {
                 }
             }
             
-            let innertubeClients: [InnerTube.ClientType] = [.ios, .android]
+            let innertubeClients: [InnerTube.ClientType] = [.ios, .webCreator]
             
             let results: [Result<InnerTube.VideoInfo, Error>] = await innertubeClients.concurrentMap { [videoID, useOAuth, allowOAuthCache] client in
                 let innertube = InnerTube(client: client, useOAuth: useOAuth, allowCache: allowOAuthCache)

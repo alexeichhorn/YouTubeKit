@@ -48,6 +48,7 @@ class InnerTube {
         ClientType.android: Client(name: "ANDROID", version: "19.09.37", screen: nil, apiKey: "AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w", userAgent: "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip", playerParams: "CgIQBg==", androidSdkVersion: 30),
         ClientType.androidMusic: Client(name: "ANDROID_MUSIC", version: "5.16.51", screen: nil, apiKey: "AIzaSyAOghZGza2MQSZkY_zfZ370N-PUdXEo8AI", userAgent: "com.google.android.apps.youtube.music/5.16.51 (Linux; U; Android 11) gzip", playerParams: "CgIQBg==", androidSdkVersion: 30),
         ClientType.webEmbed: Client(name: "WEB_EMBEDDED_PLAYER", version: "1.20220731.00.00", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", userAgent: "Mozilla/5.0"),
+        ClientType.webCreator: Client(name: "WEB_CREATOR", version: "1.20240723.03.00", screen: nil, apiKey: "", userAgent: nil),
         ClientType.androidEmbed: Client(name: "ANDROID_EMBEDDED_PLAYER", version: "18.11.34", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", userAgent: "com.google.android.youtube/18.11.34 (Linux; U; Android 11) gzip"),
         ClientType.tvEmbed: Client(name: "TVHTML5_SIMPLY_EMBEDDED_PLAYER", version: "2.0", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", userAgent: "Mozilla/5.0"),
         ClientType.ios: Client(name: "IOS", version: "19.09.3", screen: nil, apiKey: "AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc", userAgent: "com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)", deviceModel: "iPhone14,3"),
@@ -56,7 +57,7 @@ class InnerTube {
     ]
     
     enum ClientType: String {
-        case web, android, androidMusic, webEmbed, androidEmbed, tvEmbed, ios, iosMusic, mediaConnectFrontend
+        case web, android, androidMusic, webEmbed, webCreator, androidEmbed, tvEmbed, ios, iosMusic, mediaConnectFrontend
     }
     
     private var accessToken: String?
