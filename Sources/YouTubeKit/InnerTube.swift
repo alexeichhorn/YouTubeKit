@@ -45,6 +45,7 @@ class InnerTube {
     // overview of clients: https://github.com/zerodytrash/YouTube-Internal-Clients
     private let defaultClients = [
         ClientType.web: Client(name: "WEB", version: "2.20200720.00.02", screen: nil, apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", userAgent: "Mozilla/5.0"),
+        ClientType.webSafari: Client(name: "WEB", version: "2.20240726.00.00", screen: nil, apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15,gzip(gfe)"),
         ClientType.android: Client(name: "ANDROID", version: "19.09.37", screen: nil, apiKey: "AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w", userAgent: "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip", playerParams: "CgIQBg==", androidSdkVersion: 30),
         ClientType.androidMusic: Client(name: "ANDROID_MUSIC", version: "5.16.51", screen: nil, apiKey: "AIzaSyAOghZGza2MQSZkY_zfZ370N-PUdXEo8AI", userAgent: "com.google.android.apps.youtube.music/5.16.51 (Linux; U; Android 11) gzip", playerParams: "CgIQBg==", androidSdkVersion: 30),
         ClientType.webEmbed: Client(name: "WEB_EMBEDDED_PLAYER", version: "1.20220731.00.00", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", userAgent: "Mozilla/5.0"),
@@ -57,7 +58,7 @@ class InnerTube {
     ]
     
     enum ClientType: String {
-        case web, android, androidMusic, webEmbed, webCreator, androidEmbed, tvEmbed, ios, iosMusic, mediaConnectFrontend
+        case web, webSafari, android, androidMusic, webEmbed, webCreator, androidEmbed, tvEmbed, ios, iosMusic, mediaConnectFrontend
     }
     
     private var accessToken: String?

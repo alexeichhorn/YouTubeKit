@@ -161,6 +161,8 @@ final class YouTubeKitTests: XCTestCase {
             XCTAssert(!streams.filterAudioOnly().isEmpty)
             XCTAssert(!streams.filterVideoAndAudio().isEmpty)
             
+            try await checkAllStreamReachability(streams)
+            
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
