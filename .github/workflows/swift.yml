@@ -7,10 +7,6 @@ jobs:
 
     runs-on: macos-latest
 
-    env:
-      HTTP_PROXY: ${{ secrets.PROXY_HTTP }}
-      HTTPS_PROXY: ${{ secrets.PROXY_HTTPS }}
-
     steps:
     - uses: actions/checkout@v2
     
@@ -19,3 +15,6 @@ jobs:
     
     - name: Run tests
       run: swift test -v
+      env:
+        HTTP_PROXY: ${{ secrets.PROXY_HTTP }}
+        HTTPS_PROXY: ${{ secrets.PROXY_HTTPS }}
