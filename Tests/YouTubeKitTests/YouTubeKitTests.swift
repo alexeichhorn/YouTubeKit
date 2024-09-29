@@ -169,7 +169,7 @@ final class YouTubeKitTests: XCTestCase {
     }
     
     func testLivestreamHlsManifestUrl() async {
-        let youtube = YouTube(videoID: "21X5lGlDOfg")
+        let youtube = YouTube(videoID: "O9mYwRlucZY")
         do {
             let livestreams = try await youtube.livestreams
             XCTAssert(livestreams.count > 0)
@@ -182,7 +182,7 @@ final class YouTubeKitTests: XCTestCase {
     }
     
     func testLivestreamHlsManifestUrlRemote() async {
-        let youtube = YouTube(videoID: "21X5lGlDOfg", methods: [.remote])
+        let youtube = YouTube(videoID: "O9mYwRlucZY", methods: [.remote])
         do {
             let livestreams = try await youtube.livestreams
             XCTAssert(livestreams.count > 0)
@@ -218,7 +218,7 @@ final class YouTubeKitTests: XCTestCase {
         let youtube = YouTube(videoID: "ApM_KEr1ktQ")
         do {
             let metadata = try await youtube.metadata!
-            XCTAssertEqual(metadata.title, "Le Maroc Vu du Ciel (Documentaire)")
+            XCTAssertEqual(metadata.title, "Le Maroc Vu du Ciel (Documentaire de Yann Arthus-Bertrand)")
             XCTAssertFalse(metadata.description.isEmpty)
             XCTAssertEqual(metadata.thumbnail!.url, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/sddefault.jpg"))
         } catch let error {
@@ -230,7 +230,7 @@ final class YouTubeKitTests: XCTestCase {
         let youtube = YouTube(videoID: "ApM_KEr1ktQ", methods: [.remote])
         do {
             let metadata = try await youtube.metadata!
-            XCTAssertEqual(metadata.title, "Le Maroc Vu du Ciel (Documentaire)")
+            XCTAssertEqual(metadata.title, "Le Maroc Vu du Ciel (Documentaire de Yann Arthus-Bertrand)")
             XCTAssertFalse(metadata.description.isEmpty)
             XCTAssertEqual(metadata.thumbnail!.url, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/sddefault.jpg"))
         } catch let error {
