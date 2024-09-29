@@ -7,15 +7,12 @@ jobs:
 
     runs-on: macos-latest
 
+    env:
+      HTTP_PROXY: ${{ secrets.PROXY_HTTP }}
+      HTTPS_PROXY: ${{ secrets.PROXY_HTTPS }}
+
     steps:
     - uses: actions/checkout@v2
-    
-    - name: Set up proxy
-      run: |
-        echo "Setting up proxies"
-      env:
-        HTTP_PROXY: ${{ secrets.PROXY_HTTP }}
-        HTTPS_PROXY: ${{ secrets.PROXY_HTTPS }}
     
     - name: Build
       run: swift build -v
