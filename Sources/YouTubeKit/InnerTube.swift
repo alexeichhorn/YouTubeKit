@@ -54,11 +54,12 @@ class InnerTube {
         ClientType.tvEmbed: Client(name: "TVHTML5_SIMPLY_EMBEDDED_PLAYER", version: "2.0", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", userAgent: "Mozilla/5.0"),
         ClientType.ios: Client(name: "IOS", version: "19.09.3", screen: nil, apiKey: "AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc", userAgent: "com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)", deviceModel: "iPhone14,3"),
         ClientType.iosMusic: Client(name: "IOS_MUSIC", version: "5.21", screen: nil, apiKey: "AIzaSyBAETezhkwP0ZWA02RsqT1zu78Fpt0bC_s", userAgent: "com.google.ios.youtubemusic/5.21 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)", deviceModel: "iPhone14,3"),
-        ClientType.mediaConnectFrontend: Client(name: "MEDIA_CONNECT_FRONTEND", version: "0.1", screen: nil, apiKey: "", userAgent: nil)
+        ClientType.mediaConnectFrontend: Client(name: "MEDIA_CONNECT_FRONTEND", version: "0.1", screen: nil, apiKey: "", userAgent: nil),
+        ClientType.mWeb: Client(name: "MWEB", version: "2.20240726.01.00", screen: nil, apiKey: "", userAgent: nil)
     ]
     
     enum ClientType: String {
-        case web, webSafari, android, androidMusic, webEmbed, webCreator, androidEmbed, tvEmbed, ios, iosMusic, mediaConnectFrontend
+        case web, webSafari, android, androidMusic, webEmbed, webCreator, androidEmbed, tvEmbed, ios, iosMusic, mediaConnectFrontend, mWeb
     }
     
     private var accessToken: String?
