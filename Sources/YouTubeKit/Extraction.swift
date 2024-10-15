@@ -112,6 +112,18 @@ class Extraction {
         return (nil, [nil])
     }
     
+    /// Extracts the signature timestamp (sts) from javascript. 
+    /// Used to pass into InnerTube to tell API what sig/player is in use.
+    /// - parameter js: The javascript contents of the watch page
+    /// - returns: The signature timestamp (sts) or nil if not found
+    class func extractSignatureTimestamp(fromJS js: String) -> Int? {
+        let pattern = NSRegularExpression(#"(?:signatureTimestamp|sts)\s*:\s*([0-9]{5})"#)
+        if let match = pattern.firstMatch(in: js, group: 1) {
+            return Int(match.content)
+        }
+        return nil
+    }
+    
     /// Parses input html to find the end of a JavaScript object.
     /// - parameter html: HTML to be parsed for an object.
     /// - parameter precedingRegex: Regex to find the string preceding the object.

@@ -72,14 +72,17 @@ class InnerTube {
     private let context: Context
     private let headers: [String: String]
     private let playerParams: String
+
+    private let signatureTimestamp: Int?
     
     private let baseURL = "https://www.youtube.com/youtubei/v1"
     
-    init(client: ClientType = .ios, useOAuth: Bool = false, allowCache: Bool = true) {
+    init(client: ClientType = .ios, signatureTimestamp: Int?, useOAuth: Bool = false, allowCache: Bool = true) {
         self.context = defaultClients[client]!.context
         self.apiKey = defaultClients[client]!.apiKey
         self.headers = defaultClients[client]!.headers
         self.playerParams = defaultClients[client]!.playerParams ?? "8AEB"
+        self.signatureTimestamp = signatureTimestamp
         self.useOAuth = useOAuth
         self.allowCache = allowCache
         
@@ -205,17 +208,27 @@ class InnerTube {
         }
     }
     
+    private struct PlaybackContext: Encodable {
+        let contentPlaybackContext: Context
+        
+        struct Context: Encodable {
+            let html5Preference = "HTML5_PREF_WANTS"
+            let signatureTimestamp: Int?
+        }
+    }
+    
     private struct PlayerRequest: Encodable {
         let context: Context
         let videoId: String
         let params: String
-        //let paybackContext
+        let paybackContext: PlaybackContext
         let contentCheckOk: Bool = true
         let racyCheckOk: Bool = true
     }
     
     private func playerRequest(forVideoID videoID: String) -> PlayerRequest {
-        PlayerRequest(context: context, videoId: videoID, params: playerParams)
+        let playbackContext = PlaybackContext(contentPlaybackContext: PlaybackContext.Context(signatureTimestamp: signatureTimestamp))
+        return PlayerRequest(context: context, videoId: videoID, params: playerParams, paybackContext: playbackContext)
     }
     
     func player(videoID: String) async throws -> VideoInfo {
