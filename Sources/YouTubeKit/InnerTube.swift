@@ -221,14 +221,14 @@ class InnerTube {
         let context: Context
         let videoId: String
         let params: String
-        let paybackContext: PlaybackContext
+        let playbackContext: PlaybackContext
         let contentCheckOk: Bool = true
         let racyCheckOk: Bool = true
     }
     
     private func playerRequest(forVideoID videoID: String) -> PlayerRequest {
         let playbackContext = PlaybackContext(contentPlaybackContext: PlaybackContext.Context(signatureTimestamp: signatureTimestamp))
-        return PlayerRequest(context: context, videoId: videoID, params: playerParams, paybackContext: playbackContext)
+        return PlayerRequest(context: context, videoId: videoID, params: playerParams, playbackContext: playbackContext)
     }
     
     func player(videoID: String) async throws -> VideoInfo {
