@@ -60,6 +60,7 @@ class Parser {
         }
         
         var stack = [html.first!]
+        var stackContext = [""]
         var regexStack: [Character] = []
         var i = html.index(after: html.startIndex)
         
@@ -106,6 +107,7 @@ class Parser {
             } else {
                 if currentChar == contextClosers[currentContext] {
                     _ = stack.popLast()
+                    _ = stackContext.popLast()
                     i = html.index(after: i)
                     //print("closed '\(currentContext)'")
                     continue
@@ -133,6 +135,7 @@ class Parser {
                 if contextClosers.keys.contains(currentChar) {
                     if currentChar != "/" || allowedCharactersBeforeRegex.contains(lastChar) {
                         stack.append(currentChar)
+                        stackContext.append(String(html[..<i]))
                     }
                 }
             }
