@@ -80,7 +80,7 @@ class Parser {
         
         var lastChar = html.first ?? " "
         
-        let allowedCharactersBeforeRegex: Set<Character> =  ["(", ",", "=", ":", "[", "!", "&", "|", "?", "{", "}", ";"]
+        let allowedCharactersBeforeRegex: Set<Character> =  ["(", ",", "=", ":", "[", "!", "&", "|", "?", "{", "}", ";", "\n"]
         
         let endIndex = html.endIndex
         while i < endIndex {
