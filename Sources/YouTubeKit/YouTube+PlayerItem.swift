@@ -7,6 +7,7 @@
 
 import Foundation
 import AVFoundation
+import os.log
 
 @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
 extension YouTube {
@@ -23,6 +24,14 @@ extension YouTube {
         guard let videoStream = streams.filter({ $0.isNativelyPlayable }).filterVideoOnly().filter(byResolution: { ($0 ?? .max) <= (maxResolution ?? .max) }).highestResolutionStream(),
               let audioStream = streams.filter({ $0.isNativelyPlayable }).filterAudioOnly().highestAudioBitrateStream() else {
             throw YouTubeKitError.extractError
+        }
+
+        // prefer already combined streams if available
+        if let bestCombinedStream = streams.filter({ $0.isNativelyPlayable }).filterVideoAndAudio().filter(byResolution: { ($0 ?? .max) <= (maxResolution ?? .max) }).highestResolutionStream() {
+            if (bestCombinedStream.videoResolution ?? 0) >= (videoStream.videoResolution ?? 0) {
+                os_log("Using already combined stream for %{public}@", log: OSLog(category: "YouTube+PlayerItem"), type: .info, videoID)
+                return AVPlayerItem(asset: AVURLAsset(url: bestCombinedStream.url))
+            }
         }
 
         // Add video track
