@@ -12,7 +12,8 @@ import os.log
 @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
 extension YouTube {
 
-    /// Returns `AVPlayerItem` for the highest resolution stream that is natively playable with potentially audio and video automatically combined.
+    /// Returns video+audio `AVPlayerItem` for the highest resolution stream that is natively playable with potentially audio and video automatically combined.
+    /// This means it will have most of the time higher resolution and bitrate than from a single `.streams.filterVideoAndAudio()` stream alone.
     /// - Parameter maxResolution: The maximum resolution of the video stream. If `nil`, the highest resolution stream is used.
     @MainActor
     @available(iOS 15.0, watchOS 8.0, tvOS 15.0, macOS 12.0, *)
