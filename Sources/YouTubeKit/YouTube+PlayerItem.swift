@@ -38,22 +38,31 @@ extension YouTube {
         let videoDuration = try await metadata?.duration
         let videoDurationTime = videoDuration.map { CMTime(value: CMTimeValue($0 * 1000), timescale: 1000) }
 
-        // Add video track
+        // prepare video track
         let videoAsset = AVURLAsset(url: videoStream.url)
+        async let videoAssetTrackTask = videoAsset.loadTracks(withMediaType: .video).first
+
+        // prepare audio track
+        let audioAsset = AVURLAsset(url: audioStream.url)
+        async let audioAssetTrackTask = audioAsset.loadTracks(withMediaType: .audio).first
+
+        // await video and audio track loading concurrently
+        guard let videoAssetTrack = try await videoAssetTrackTask, let audioAssetTrack = try await audioAssetTrackTask else {
+            throw YouTubeKitError.extractError
+        }
+
+        // add video track
         let videoTrack = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)
-        let videoAssetTrack = try await videoAsset.loadTracks(withMediaType: .video).first
         let videoTimeRange = if let videoDurationTime {
             videoDurationTime
         } else {
             try await videoAsset.load(.duration)
         }
-        try videoTrack?.insertTimeRange(CMTimeRange(start: .zero, duration: videoTimeRange), of: videoAssetTrack!, at: .zero)
+        try videoTrack?.insertTimeRange(CMTimeRange(start: .zero, duration: videoTimeRange), of: videoAssetTrack, at: .zero)
 
-        // Add audio track
-        let audioAsset = AVURLAsset(url: audioStream.url)
+        // add audio track
         let audioTrack = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)
-        let audioAssetTrack = try await audioAsset.load(.tracks).first { $0.mediaType == .audio }
-        try audioTrack?.insertTimeRange(CMTimeRange(start: .zero, duration: videoTimeRange), of: audioAssetTrack!, at: .zero)
+        try audioTrack?.insertTimeRange(CMTimeRange(start: .zero, duration: videoTimeRange), of: audioAssetTrack, at: .zero)
 
         let playerItem = AVPlayerItem(asset: composition)
         return playerItem
