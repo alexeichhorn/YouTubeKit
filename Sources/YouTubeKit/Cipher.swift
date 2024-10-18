@@ -45,7 +45,7 @@ class Cipher {
         self.transformMap = try Cipher.getTransformMap(js: js, variable: variable)
         self.transformPlan = try Cipher.getDecodedTransformPlan(rawPlan: rawTransformPlan, variable: variable, transformMap: transformMap)
         
-        self.nParameterFunction = try Cipher.getNParameterFunction(js: js)
+        self.nParameterFunction = try Cipher.getThrottlingFunctionCode(js: js) //try Cipher.getNParameterFunction(js: js)
     }
     
     /// Converts n to the correct value to prevent throttling.
@@ -229,17 +229,21 @@ class Cipher {
     }
     
     /// Extract the raw code for the throttling function.
-    class func getThrottlingFunctionCode(js: String) throws -> String {
+    class func getThrottlingFunctionCode(js: String, functionName: String = "processNSignature") throws -> String {
         let name = try getThrottlingFunctionName(js: js)
         
-        let regex = NSRegularExpression(NSRegularExpression.escapedPattern(for: name) + #"=function\(\w\)"#)
-        guard let match = regex.firstMatch(in: js) else {
+        let regex = NSRegularExpression(NSRegularExpression.escapedPattern(for: name) + #"=function\((\w)\)"#)
+        guard let (match, groupMatches) = regex.firstMatch(in: js, includingGroups: [1]) else {
             throw YouTubeKitError.regexMatchError
         }
         
-        // TODO: not yet implemented like in pytube
+        guard let variableName = groupMatches[1]?.content else {
+            throw YouTubeKitError.regexMatchError
+        }
         
-        return String(js[match.start...])
+        let code = try Parser.findJavascriptFunctionFromStartpoint(html: js, startPoint: match.end)
+        
+        return "function \(functionName)(\(variableName)) \(code)"
     }
     
     enum JSFunction {

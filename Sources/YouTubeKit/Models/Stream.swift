@@ -132,4 +132,10 @@ public struct Stream {
         (videoCodec?.isNativelyPlayable ?? true) && (audioCodec?.isNativelyPlayable ?? true)
     }
     
+    /// smaller pixel size of resolution (e.g. 1080 for 1080p)
+    /// - note: is nil, if no video available
+    public var videoResolution: Int? {
+        itag.videoResolution
+    }
+    
 }

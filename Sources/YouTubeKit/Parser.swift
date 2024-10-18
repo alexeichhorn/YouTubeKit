@@ -50,4 +50,98 @@ class Parser {
         return results
     }
     
+    
+    // MARK: - Javascript Extraction
+    
+    class func findJavascriptFunctionFromStartpoint(html fullHTML: String, startPoint: String.Index) throws -> String {
+        let html = String(fullHTML[startPoint...])
+        guard ["{", "["].contains(html.first ?? " ") else {
+            fatalError()
+        }
+        
+        var stack = [html.first!]
+        var regexStack: [Character] = []
+        var i = html.index(after: html.startIndex)
+        
+        let contextClosers: [Character: Character] = [
+            "{": "}",
+            "[": "]",
+            "\"": "\"",
+            "'": "'",
+            "/": "/"  // javascript regex
+        ]
+        
+        // context inside regex
+        let regexContextClosers: [Character: Character] = [
+            "(": ")",
+            "[": "]",
+            "{": "}",
+        ]
+        
+        var lastChar = html.first ?? " "
+        
+        let allowedCharactersBeforeRegex: Set<Character> =  ["(", ",", "=", ":", "[", "!", "&", "|", "?", "{", "}", ";", "\n"]
+        
+        let endIndex = html.endIndex
+        while i < endIndex {
+            guard let currentContext = stack.last else {
+                break
+            }
+            let currentChar = html[i]
+            
+            defer {
+                if currentChar != " " || lastChar != "\n" {
+                    lastChar = currentChar
+                }
+            }
+            
+            // current context gets closed
+            if currentContext == "/" && !regexStack.isEmpty {
+                if let regexContext = regexStack.last, currentChar == regexContextClosers[regexContext] {
+                    _ = regexStack.popLast()
+                    i = html.index(after: i)
+                    //print("regex closed '\(regexContext)'")
+                    continue
+                }
+            } else {
+                if currentChar == contextClosers[currentContext] {
+                    _ = stack.popLast()
+                    i = html.index(after: i)
+                    //print("closed '\(currentContext)'")
+                    continue
+                }
+            }
+            
+            // strings require special context handling because they can contain context openers and closers
+            if currentContext == "\"" || currentContext == "'" || currentContext == "/" {
+                if currentChar == "\\" {
+                    i = html.index(i, offsetBy: 2)
+                    continue
+                }
+                
+                // regex special case
+                if currentContext == "/" {
+                    if regexContextClosers.keys.contains(currentChar) {
+                        regexStack.append(currentChar)
+                    }
+                    i = html.index(after: i)
+                    continue
+                }
+                
+            } else {
+                // non-string contexts are when we need to look for context openers
+                if contextClosers.keys.contains(currentChar) {
+                    if currentChar != "/" || allowedCharactersBeforeRegex.contains(lastChar) {
+                        stack.append(currentChar)
+                    }
+                }
+            }
+            
+            i = html.index(after: i)
+        }
+        
+        let fullObject = String(html[..<i])
+        return fullObject
+    }
+    
 }

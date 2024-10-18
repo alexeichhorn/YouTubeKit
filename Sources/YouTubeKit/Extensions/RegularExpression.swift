@@ -36,6 +36,29 @@ extension NSRegularExpression {
         return resultRange.flatMap { Range($0, in: string) }.map { Match(content: String(string[$0]), start: $0.lowerBound, end: $0.upperBound) }
     }
     
+    func firstMatch(in string: String, includingGroups groups: [Int]) -> (Match, [Int: Match])? {
+        let range = NSRange(location: 0, length: string.utf16.count)
+        guard let result = firstMatch(in: string, options: [], range: range),
+              let mainRange = Range(result.range, in: string) else {
+            return nil
+        }
+        
+        let groupRanges = groups.identityDictionary
+            .filter { $0.key < result.numberOfRanges }
+            .compactMapValues { Range(result.range(at: $0), in: string) }
+        
+        guard groupRanges.count == groups.count else {
+            return nil
+        }
+        
+        let mainMatch = Match(content: String(string[mainRange]), start: mainRange.lowerBound, end: mainRange.upperBound)
+        let groupMatches = groupRanges.mapValues { range in
+            Match(content: String(string[range]), start: range.lowerBound, end: range.upperBound)
+        }
+        
+        return (mainMatch, groupMatches)
+    }
+    
     func allMatches(in string: String) -> [Match] {
         let range = NSRange(location: 0, length: string.utf16.count)
         let results = matches(in: string, options: [], range: range)
