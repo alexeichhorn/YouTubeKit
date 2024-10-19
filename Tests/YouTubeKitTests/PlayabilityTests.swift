@@ -63,7 +63,7 @@ final class PlayabilityTests: XCTestCase {
     
     func testAutoCombinedPlayerItemPlayability() async throws {
         
-        let videoID = "njX2bu-_Vw4"
+        let videoID = "Slj4-Sv-YNA"
         let youtubeLocal = YouTube(videoID: videoID, methods: [.local])
         let youtubeRemote = YouTube(videoID: videoID, methods: [.remote])
         

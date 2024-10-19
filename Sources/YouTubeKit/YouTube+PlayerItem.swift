@@ -22,7 +22,7 @@ extension YouTube {
 
         let composition = AVMutableComposition()
 
-        guard let videoStream = streams.filter({ $0.isNativelyPlayable }).filterVideoOnly().filter(byResolution: { ($0 ?? .max) <= (maxResolution ?? .max) }).highestResolutionStream(),
+        guard let videoStream = streams.filter({ $0.isNativelyPlayable && $0.url.pathExtension != "m3u8" }).filterVideoOnly().filter(byResolution: { ($0 ?? .max) <= (maxResolution ?? .max) }).highestResolutionStream(),
               let audioStream = streams.filter({ $0.isNativelyPlayable }).filterAudioOnly().highestAudioBitrateStream() else {
             throw YouTubeKitError.extractError
         }
