@@ -4,10 +4,17 @@ on: push
 
 jobs:
   build:
-
+  
+    strategy:
+      matrix:
+        swift: ["5.8", "5.9", "6.0"]
+    
     runs-on: macos-latest
 
     steps:
+    - uses: swift-actions/setup-swift@65540b95f51493d65f5e59e97dcef9629ddf11bf
+      with:
+        swift-version: ${{ matrix.swift }}
     - uses: actions/checkout@v2
     - name: Build
       run: swift build -v
