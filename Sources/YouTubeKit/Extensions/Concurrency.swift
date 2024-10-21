@@ -20,7 +20,8 @@ extension Sequence {
         return values
     }
     
-    func concurrentMap<T>(_ transform: @escaping (Element) async -> T) async -> [T] {
+    func concurrentMap<T: Sendable>(_ transform: @escaping @Sendable (Element) async -> T) async -> [T] where Element: Sendable {
+        
         let tasks = map { element in
             Task {
                 await transform(element)

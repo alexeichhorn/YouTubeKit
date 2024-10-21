@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import os.log
+@preconcurrency import os.log
 
 @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
 public class YouTube {
@@ -14,8 +14,8 @@ public class YouTube {
     private var _js: String?
     private var _jsURL: URL?
     
-    private static var __js: String? // caches js between calls
-    private static var __jsURL: URL?
+    nonisolated(unsafe) private static var __js: String? // caches js between calls
+    nonisolated(unsafe) private static var __jsURL: URL?
     
     private var _videoInfos: [InnerTube.VideoInfo]?
     
@@ -320,7 +320,7 @@ public class YouTube {
             }
             
             // try extracting video infos from watch html directly as well
-            let watchVideoInfoTask = Task<InnerTube.VideoInfo?, Never> {
+            let watchVideoInfoTask = Task<InnerTube.VideoInfo?, Never> { [log] in
                 do {
                     return try await Extraction.getVideoInfo(fromHTML: watchHTML)
                 } catch let error {

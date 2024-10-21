@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct ITag {
+public struct ITag: Sendable {
     
     let itag: Int
     

@@ -7,7 +7,7 @@
 
 import Foundation
 
-protocol Codec {
+protocol Codec: Sendable {
     associatedtype BaseCodec where BaseCodec: Equatable
     
     var baseCodec: BaseCodec? { get }

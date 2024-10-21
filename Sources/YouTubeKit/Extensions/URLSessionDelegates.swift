@@ -7,13 +7,13 @@
 
 import Foundation
 
-class ConfigurableURLSessionDelegate: NSObject, URLSessionTaskDelegate {
+final class ConfigurableURLSessionDelegate: NSObject, URLSessionTaskDelegate {
     
     let allowsRedirects: Bool
     let applyCookiesOnRedirect: Bool
     let saveIntermediateResponses: Bool
     
-    var intermediateResponses = [HTTPURLResponse]()
+    nonisolated(unsafe) var intermediateResponses = [HTTPURLResponse]()
     
     init(allowsRedirect: Bool, applyCookiesOnRedirect: Bool, saveIntermediateResponses: Bool) {
         self.allowsRedirects = allowsRedirect
