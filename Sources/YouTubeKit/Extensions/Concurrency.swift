@@ -10,7 +10,7 @@ import Foundation
 @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
 extension Sequence {
     
-    func asyncMap<T>(_ transform: (Element) async throws -> T) async rethrows -> [T] {
+    func asyncMap<T: Sendable>(_ transform: (Element) async throws -> T, isolation: isolated (any Actor)? = #isolation) async rethrows -> [T] where Element: Sendable {
         var values = [T]()
         
         for element in self {
@@ -20,16 +20,18 @@ extension Sequence {
         return values
     }
     
-    func concurrentMap<T: Sendable>(_ transform: @escaping @Sendable (Element) async -> T) async -> [T] where Element: Sendable {
-        
-        let tasks = map { element in
-            Task {
-                await transform(element)
+    func concurrentMap<T: Sendable>(_ transform: @Sendable (Element) async -> T) async -> [T] where Element: Sendable {
+        return await withoutActuallyEscaping(transform) { escapingTransform in
+            
+            let tasks = map { element in
+                Task {
+                    await escapingTransform(element)
+                }
             }
-        }
-        
-        return await tasks.asyncMap { task in
-            await task.value
+            
+            return await tasks.asyncMap { task in
+                await task.value
+            }
         }
     }
     
