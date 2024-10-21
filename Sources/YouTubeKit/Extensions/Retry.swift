@@ -17,7 +17,7 @@ extension Task {
     // A static function that attempts to execute a block of code with each method in a provided array.
     // If the block throws an error, the function will try the next method.
     // If all methods have been tried and all have thrown errors, the function will throw the last error encountered.
-    static func retry<Method>(with methods: [Method], block: (Method) async throws -> Success) async throws -> Success where Failure == Never {
+    static func retry<Method: Sendable>(with methods: [Method], block: (Method) async throws -> Success, isolation: isolated (any Actor)? = #isolation) async throws -> Success where Failure == Never {
         
         var lastError: any Error = RetryError.emptyMethods
         

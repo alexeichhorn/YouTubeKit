@@ -8,7 +8,7 @@
 import Foundation
 
 /// Represents metadata for a YouTube video.
-public struct YouTubeMetadata {
+public struct YouTubeMetadata: Sendable {
     
     /// The title of the YouTube video.
     public let title: String
@@ -20,7 +20,7 @@ public struct YouTubeMetadata {
     public let thumbnail: Thumbnail?
 
     /// Represents a YouTube video thumbnail.
-    public struct Thumbnail {
+    public struct Thumbnail: Sendable {
         /// The URL of the thumbnail image.
         public let url: URL
     }

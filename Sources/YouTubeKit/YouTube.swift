@@ -9,7 +9,7 @@ import Foundation
 @preconcurrency import os.log
 
 @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
-public class YouTube {
+public actor YouTube {
     
     private var _js: String?
     private var _jsURL: URL?
@@ -81,7 +81,7 @@ public class YouTube {
     }
     
     /// - parameter methods: Methods used to extract streams from the video - ordered by priority (Default: only local)
-    public convenience init(url: URL, proxies: [String: URL] = [:], useOAuth: Bool = false, allowOAuthCache: Bool = false, methods: [ExtractionMethod] = [.local]) {
+    public init(url: URL, proxies: [String: URL] = [:], useOAuth: Bool = false, allowOAuthCache: Bool = false, methods: [ExtractionMethod] = [.local]) {
         let videoID = Extraction.extractVideoID(from: url.absoluteString) ?? ""
         self.init(videoID: videoID, proxies: proxies, useOAuth: useOAuth, allowOAuthCache: allowOAuthCache, methods: methods)
     }
@@ -220,7 +220,7 @@ public class YouTube {
                     var streams = [Stream]()
                     var existingITags = Set<Int>()
                     
-                    func process(streamingData: InnerTube.StreamingData, videoInfo: InnerTube.VideoInfo) async throws {
+                    func process(streamingData: InnerTube.StreamingData, videoInfo: InnerTube.VideoInfo, isolation: isolated (any Actor)? = #isolation) async throws {
                         
                         var streamManifest = Extraction.applyDescrambler(streamData: streamingData)
                         
