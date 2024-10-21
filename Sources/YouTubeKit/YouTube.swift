@@ -14,8 +14,13 @@ public class YouTube {
     private var _js: String?
     private var _jsURL: URL?
     
+#if swift(>=5.10)
     nonisolated(unsafe) private static var __js: String? // caches js between calls
     nonisolated(unsafe) private static var __jsURL: URL?
+#else
+    private static var __js: String? // caches js between calls
+    private static var __jsURL: URL?
+#endif
     
     private var _videoInfos: [InnerTube.VideoInfo]?
     

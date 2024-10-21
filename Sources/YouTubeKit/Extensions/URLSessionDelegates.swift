@@ -13,7 +13,11 @@ final class ConfigurableURLSessionDelegate: NSObject, URLSessionTaskDelegate {
     let applyCookiesOnRedirect: Bool
     let saveIntermediateResponses: Bool
     
+#if swift(>=5.10)
     nonisolated(unsafe) var intermediateResponses = [HTTPURLResponse]()
+#else
+    var intermediateResponses = [HTTPURLResponse]()
+#endif
     
     init(allowsRedirect: Bool, applyCookiesOnRedirect: Bool, saveIntermediateResponses: Bool) {
         self.allowsRedirects = allowsRedirect
