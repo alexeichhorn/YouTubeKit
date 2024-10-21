@@ -7,7 +7,7 @@ jobs:
   
     strategy:
       matrix:
-        swift: ["5.10"] #["5.8", "5.9", "5.10"]
+        swift: ["5.9", "5.10"] #["5.8", "5.9", "5.10"]
     
     runs-on: macos-latest
 
