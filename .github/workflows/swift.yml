@@ -12,7 +12,8 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: swift-actions/setup-swift@v2
+    #- uses: swift-actions/setup-swift@v2
+    - uses: NeedleInAJayStack/setup-swift@4e17dcd69a660eea371d715802c219601e76f50a # temporary (for testing)
       with:
         swift-version: ${{ matrix.swift }}
     - uses: actions/checkout@v2
