@@ -107,26 +107,44 @@ class Cipher {
     
     /// Extract the name of the function responsible for computing the signature.
     class func getInitialFunctionName(js: String) throws -> String {
+
+        struct ExtractionRegex {
+            let regex: NSRegularExpression
+            let group: Int
+
+            init(pattern: String, group: Int) {
+                self.regex = NSRegularExpression(pattern)
+                self.group = group
+            }
+
+            func firstMatch(in js: String) -> NSRegularExpression.Match? {
+                return regex.firstMatch(in: js, group: group)
+            }
+        }
+
         // note: make sure patterns don't contain named groups. Instead the function name should be always in group 1
         let functionPatterns = [
-            #"\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*([a-zA-Z0-9$]+)\("#,
-            #"\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*([a-zA-Z0-9$]+)\("#,
-            #"(?:\b|[^a-zA-Z0-9$])([a-zA-Z0-9$]{2})\s*=\s*function\(\s*a\s*\)\s*\{\s*a\s*=\s*a\.split\(\s*\"\"\s*\)"#,  // slight modifications from original
-            #"([a-zA-Z0-9$]+)\s*=\s*function\(\s*a\s*\)\s*\{\s*a\s*=\s*a\.split\(\s*""\s*\)"#,  // escaped {
-            #"["\']signature["\']\s*,\s*([a-zA-Z0-9$]+)\("#, // slightly modified (weaker condition) to correctly have function name in group 1
-            #"\.sig\|\|([a-zA-Z0-9$]+)\("#,
-            #"yt\.akamaized\.net/\)\s*\|\|\s*.*?\s*[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?:encodeURIComponent\s*\()?\s*([a-zA-Z0-9$]+)\("#,  // noqa: E501
-            #"\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*([a-zA-Z0-9$]+)\("#,  // noqa: E501
-            #"\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*([a-zA-Z0-9$]+)\("#,  // noqa: E501
-            #"\bc\s*&&\s*a\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*([a-zA-Z0-9$]+)\("#,  // noqa: E501
-            #"\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*([a-zA-Z0-9$]+)\("#,  // noqa: E501
-            #"\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*([a-zA-Z0-9$]+)\("#,  // noqa: E501
-        ].map { NSRegularExpression($0) }
+            ExtractionRegex(pattern: #"\b([a-zA-Z0-9$]+)&&\(\1=([a-zA-Z0-9$]{2,})\(decodeURIComponent\(\1\)\)"#, group: 2),
+            ExtractionRegex(pattern: #"([a-zA-Z0-9$]+)\s*=\s*function\(\s*([a-zA-Z0-9$]+)\s*\)\s*\{\s*\2\s*=\s*\2\.split\(\s*\"\"\s*\)\s*;\s*[^}]+;\s*return\s+\2\.join\(\s*\"\"\s*\)"#, group: 1),
+            ExtractionRegex(pattern: #"(?:\b|[^a-zA-Z0-9$])([a-zA-Z0-9$]{2,})\s*=\s*function\(\s*a\s*\)\s*\{\s*a\s*=\s*a\.split\(\s*\"\"\s*\)(?:;[a-zA-Z0-9$]{2}\.[a-zA-Z0-9$]{2}\(a,\d+\))?"#, group: 1),
+            // older
+            ExtractionRegex(pattern: #"\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"(?:\b|[^a-zA-Z0-9$])([a-zA-Z0-9$]{2})\s*=\s*function\(\s*a\s*\)\s*\{\s*a\s*=\s*a\.split\(\s*""\s*\)"#, group: 1),  // slight modifications from original
+            ExtractionRegex(pattern: #"([a-zA-Z0-9$]+)\s*=\s*function\(\s*a\s*\)\s*\{\s*a\s*=\s*a\.split\(\s*""\s*\)"#, group: 1),  // escaped {
+            ExtractionRegex(pattern: #"["\']signature["\']\s*,\s*([a-zA-Z0-9$]+)\("#, group: 1), // slightly modified (weaker condition) to correctly have function name in group 1
+            ExtractionRegex(pattern: #"\.sig\|\|([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"yt\.akamaized\.net/\)\s*\|\|\s*.*?\s*[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?:encodeURIComponent\s*\()?\s*([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"\bc\s*&&\s*a\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*([a-zA-Z0-9$]+)\("#, group: 1),
+        ]
         os_log("finding initial function name", log: log, type: .debug)
         
         for pattern in functionPatterns {
-            if let functionMatch = pattern.firstMatch(in: js, group: 1) {
-                os_log("finished regex search, matched %{public}@", log: log, type: .debug, pattern.pattern)
+            if let functionMatch = pattern.firstMatch(in: js) {
+                os_log("finished regex search, matched %{public}@", log: log, type: .debug, pattern.regex.pattern)
                 return functionMatch.content
             }
         }
