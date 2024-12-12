@@ -340,7 +340,10 @@ class Cipher {
             throw YouTubeKitError.regexMatchError
         }
         
-        let code = try Parser.findJavascriptFunctionFromStartpoint(html: js, startPoint: match.end)
+        var code = try Parser.findJavascriptFunctionFromStartpoint(html: js, startPoint: match.end)
+        
+        // workaround for "typeof" issue
+        code.replace(NSRegularExpression(#";\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(["\'])undefined\1\s*\)\s*return\s+\#(variableName);"#), with: ";")
         
         return "function \(functionName)(\(variableName)) \(code)"
     }

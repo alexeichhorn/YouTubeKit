@@ -88,3 +88,12 @@ extension NSRegularExpression {
     }
     
 }
+
+extension String {
+    
+    mutating func replace(_ pattern: NSRegularExpression, with replacement: String) {
+        let range = NSRange(location: 0, length: utf16.count)
+        self = pattern.stringByReplacingMatches(in: self, options: [], range: range, withTemplate: replacement)
+    }
+    
+}
