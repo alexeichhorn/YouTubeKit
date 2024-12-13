@@ -107,26 +107,44 @@ class Cipher {
     
     /// Extract the name of the function responsible for computing the signature.
     class func getInitialFunctionName(js: String) throws -> String {
+
+        struct ExtractionRegex {
+            let regex: NSRegularExpression
+            let group: Int
+
+            init(pattern: String, group: Int) {
+                self.regex = NSRegularExpression(pattern)
+                self.group = group
+            }
+
+            func firstMatch(in js: String) -> NSRegularExpression.Match? {
+                return regex.firstMatch(in: js, group: group)
+            }
+        }
+
         // note: make sure patterns don't contain named groups. Instead the function name should be always in group 1
         let functionPatterns = [
-            #"\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*([a-zA-Z0-9$]+)\("#,
-            #"\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*([a-zA-Z0-9$]+)\("#,
-            #"(?:\b|[^a-zA-Z0-9$])([a-zA-Z0-9$]{2})\s*=\s*function\(\s*a\s*\)\s*\{\s*a\s*=\s*a\.split\(\s*\"\"\s*\)"#,  // slight modifications from original
-            #"([a-zA-Z0-9$]+)\s*=\s*function\(\s*a\s*\)\s*\{\s*a\s*=\s*a\.split\(\s*""\s*\)"#,  // escaped {
-            #"["\']signature["\']\s*,\s*([a-zA-Z0-9$]+)\("#, // slightly modified (weaker condition) to correctly have function name in group 1
-            #"\.sig\|\|([a-zA-Z0-9$]+)\("#,
-            #"yt\.akamaized\.net/\)\s*\|\|\s*.*?\s*[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?:encodeURIComponent\s*\()?\s*([a-zA-Z0-9$]+)\("#,  // noqa: E501
-            #"\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*([a-zA-Z0-9$]+)\("#,  // noqa: E501
-            #"\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*([a-zA-Z0-9$]+)\("#,  // noqa: E501
-            #"\bc\s*&&\s*a\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*([a-zA-Z0-9$]+)\("#,  // noqa: E501
-            #"\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*([a-zA-Z0-9$]+)\("#,  // noqa: E501
-            #"\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*([a-zA-Z0-9$]+)\("#,  // noqa: E501
-        ].map { NSRegularExpression($0) }
+            ExtractionRegex(pattern: #"\b([a-zA-Z0-9_$]+)&&\(\1=([a-zA-Z0-9_$]{2,})\(decodeURIComponent\(\1\)\)"#, group: 2),
+            ExtractionRegex(pattern: #"([a-zA-Z0-9_$]+)\s*=\s*function\(\s*([a-zA-Z0-9_$]+)\s*\)\s*\{\s*\2\s*=\s*\2\.split\(\s*\"\"\s*\)\s*;\s*[^}]+;\s*return\s+\2\.join\(\s*\"\"\s*\)"#, group: 1),
+            ExtractionRegex(pattern: #"(?:\b|[^a-zA-Z0-9_$])([a-zA-Z0-9_$]{2,})\s*=\s*function\(\s*a\s*\)\s*\{\s*a\s*=\s*a\.split\(\s*\"\"\s*\)(?:;[a-zA-Z0-9_$]{2}\.[a-zA-Z0-9_$]{2}\(a,\d+\))?"#, group: 1),
+            // older
+            ExtractionRegex(pattern: #"\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"(?:\b|[^a-zA-Z0-9$])([a-zA-Z0-9$]{2})\s*=\s*function\(\s*a\s*\)\s*\{\s*a\s*=\s*a\.split\(\s*""\s*\)"#, group: 1),  // slight modifications from original
+            ExtractionRegex(pattern: #"([a-zA-Z0-9$]+)\s*=\s*function\(\s*a\s*\)\s*\{\s*a\s*=\s*a\.split\(\s*""\s*\)"#, group: 1),  // escaped {
+            ExtractionRegex(pattern: #"["\']signature["\']\s*,\s*([a-zA-Z0-9$]+)\("#, group: 1), // slightly modified (weaker condition) to correctly have function name in group 1
+            ExtractionRegex(pattern: #"\.sig\|\|([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"yt\.akamaized\.net/\)\s*\|\|\s*.*?\s*[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?:encodeURIComponent\s*\()?\s*([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"\bc\s*&&\s*a\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*([a-zA-Z0-9$]+)\("#, group: 1),
+        ]
         os_log("finding initial function name", log: log, type: .debug)
         
         for pattern in functionPatterns {
-            if let functionMatch = pattern.firstMatch(in: js, group: 1) {
-                os_log("finished regex search, matched %{public}@", log: log, type: .debug, pattern.pattern)
+            if let functionMatch = pattern.firstMatch(in: js) {
+                os_log("finished regex search, matched %{public}@", log: log, type: .debug, pattern.regex.pattern)
                 return functionMatch.content
             }
         }
@@ -204,23 +222,104 @@ class Cipher {
     
     /// Extract the name of the function that computes the throttling parameter.
     class func getThrottlingFunctionName(js: String) throws -> String {
-        let functionPatterns = [
-            NSRegularExpression(#"a\.[a-zA-Z]\s*&&\s*\([a-z]\s*=\s*a\.get\("n"\)\)\s*&&\s*"#),
-            NSRegularExpression(#"\([a-z]\s*=\s*([a-zA-Z0-9$]+)(\[\d+\])?\([a-z]\)"#)
-        ]
-        for pattern in functionPatterns {
-            guard let (_, functionMatchGroups) = pattern.allMatches(in: js, includingGroups: [1, 2]).first else { continue }
-            guard let firstGroup = functionMatchGroups[1] else { continue }
-            guard let secondGroup = functionMatchGroups[2] else {
-                return firstGroup.content
+        
+        let functionName: String
+        let index: Int?
+        
+        if #available(iOS 16.0, macOS 13.0, watchOS 9.0, tvOS 16.0, *) {
+            /*
+             Full regex pattern:
+             """
+             (?x)
+             (?:
+                 \.get\("n"\)\)&&\(b=|
+                 (?:
+                     b=String\.fromCharCode\(110\)|
+                     (?P<str_idx>[a-zA-Z0-9_$.]+)&&\(b="nn"\[\+(?P=str_idx)\]
+                 )
+                 (?:
+                     ,[a-zA-Z0-9_$]+\(a\))?,c=a\.
+                     (?:
+                         get\(b\)|
+                         [a-zA-Z0-9_$]+\[b\]\|\|null
+                     )\)&&\(c=|
+                 \b(?P<var>[a-zA-Z0-9_$]+)=
+             )(?P<nfunc>[a-zA-Z0-9_$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z]\)
+             (?(var),[a-zA-Z0-9_$]+\.set\((?:"n+"|[a-zA-Z0-9_$]+)\,(?P=var)\))
+             """
+             
+             -> We split it up in two, as Swift can't handle the conditional (on the last line). So we handle it in code
+             */
+            
+            let patternWithVar = #/
+            (?x)
+            (?:
+                \b(?P<var>[a-zA-Z0-9_$]+)=
+            )(?P<nfunc>[a-zA-Z0-9_$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z]\)
+            (,[a-zA-Z0-9_$]+\.set\((?:"n+"|[a-zA-Z0-9_$]+)\,(?P=var)\))
+            /#
+            
+            let patternWithoutVar = #/
+            (?x)
+            (?:
+                \.get\("n"\)\)&&\(b=|
+                (?:
+                    b=String\.fromCharCode\(110\)|
+                    (?P<str_idx>[a-zA-Z0-9_$.]+)&&\(b="nn"\[\+(?P=str_idx)\]
+                )
+                (?:
+                    ,[a-zA-Z0-9_$]+\(a\))?,c=a\.
+                    (?:
+                        get\(b\)|
+                        [a-zA-Z0-9_$]+\[b\]\|\|null
+                    )\)&&\(c=
+            )(?P<nfunc>[a-zA-Z0-9_$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z]\)
+            /#
+            
+            if let match = try patternWithVar.firstMatch(in: js) {
+                functionName = String(match.nfunc)
+                index = match.idx.flatMap { Int($0) }
+            } else if let match = try patternWithoutVar.firstMatch(in: js) {
+                functionName = String(match.nfunc)
+                index = match.idx.flatMap { Int($0) }
+            } else {
+                throw YouTubeKitError.regexMatchError
             }
             
-            guard let index = Int(secondGroup.content.strip(from: "[]")) else { continue }
-            let arrayPattern = NSRegularExpression(#"var "# + NSRegularExpression.escapedPattern(for: firstGroup.content) + #"\s*=\s*(\[.+?\]);"#)
+            guard let index else {
+                os_log("extracted throttle function name %{public}@ but no index", log: log, type: .error, functionName)
+                throw YouTubeKitError.regexMatchError
+            }
+            
+            let arrayPattern = NSRegularExpression(#"var "# + NSRegularExpression.escapedPattern(for:functionName) + #"\s*=\s*(\[.+?\])\s*[,;]"#)
             if let arrayMatch = arrayPattern.firstMatch(in: js, group: 1) {
                 let array = arrayMatch.content.strip(from: "[]").split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 if array.indices.contains(index) {
                     return array[index]
+                }
+            }
+            
+        } else {
+            
+            let functionPatterns = [
+                NSRegularExpression(#"a\.[a-zA-Z]\s*&&\s*\([a-z]\s*=\s*a\.get\("n"\)\)\s*&&\s*"#),
+                NSRegularExpression(#"\([a-z]\s*=\s*([a-zA-Z0-9$]+)(\[\d+\])?\([a-z]\)"#)
+            ]
+            
+            for pattern in functionPatterns {
+                guard let (_, functionMatchGroups) = pattern.allMatches(in: js, includingGroups: [1, 2]).first else { continue }
+                guard let firstGroup = functionMatchGroups[1] else { continue }
+                guard let secondGroup = functionMatchGroups[2] else {
+                    return firstGroup.content
+                }
+                
+                guard let index = Int(secondGroup.content.strip(from: "[]")) else { continue }
+                let arrayPattern = NSRegularExpression(#"var "# + NSRegularExpression.escapedPattern(for: firstGroup.content) + #"\s*=\s*(\[.+?\])\s*[,;]"#)
+                if let arrayMatch = arrayPattern.firstMatch(in: js, group: 1) {
+                    let array = arrayMatch.content.strip(from: "[]").split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    if array.indices.contains(index) {
+                        return array[index]
+                    }
                 }
             }
         }
@@ -241,7 +340,10 @@ class Cipher {
             throw YouTubeKitError.regexMatchError
         }
         
-        let code = try Parser.findJavascriptFunctionFromStartpoint(html: js, startPoint: match.end)
+        var code = try Parser.findJavascriptFunctionFromStartpoint(html: js, startPoint: match.end)
+        
+        // workaround for "typeof" issue
+        code.replace(NSRegularExpression(#";\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(["\'])undefined\1\s*\)\s*return\s+\#(variableName);"#), with: ";")
         
         return "function \(functionName)(\(variableName)) \(code)"
     }
