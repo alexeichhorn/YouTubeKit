@@ -75,7 +75,7 @@ class Parser {
         let regexContextClosers: [Character: Character] = [
             "(": ")",
             "[": "]",
-            "{": "}",
+            //"{": "}",
         ]
         
         var lastChar = html.first ?? " "
