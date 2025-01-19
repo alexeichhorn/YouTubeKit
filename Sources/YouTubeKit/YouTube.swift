@@ -335,7 +335,7 @@ public class YouTube {
             // try extracting video infos from watch html directly as well
             let watchVideoInfoTask = Task<InnerTube.VideoInfo?, Never> { [log] in
                 do {
-                    return try await Extraction.getVideoInfo(fromHTML: watchHTML)
+                    return nil //try await Extraction.getVideoInfo(fromHTML: watchHTML)  // (temporarily disabled)
                 } catch let error {
                     os_log("Couldn't extract video info from main watch html: %{public}@", log: log, type: .debug, error.localizedDescription)
                     return nil
