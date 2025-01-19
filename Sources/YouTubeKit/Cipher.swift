@@ -33,7 +33,7 @@ class Cipher {
     init(js: String) throws {
         self.js = js
         
-        let rawTransformPlan = try Cipher.getRawTransformPlan(js: js)
+        /*let rawTransformPlan = try Cipher.getRawTransformPlan(js: js)
 
         let varRegex = NSRegularExpression(#"^\$*\w+\W"#)
         guard let varMatch = varRegex.firstMatch(in: rawTransformPlan[0], group: 0) else {
@@ -43,7 +43,10 @@ class Cipher {
         _ = variable.popLast()
         
         self.transformMap = try Cipher.getTransformMap(js: js, variable: variable)
-        self.transformPlan = try Cipher.getDecodedTransformPlan(rawPlan: rawTransformPlan, variable: variable, transformMap: transformMap)
+        self.transformPlan = try Cipher.getDecodedTransformPlan(rawPlan: rawTransformPlan, variable: variable, transformMap: transformMap)*/
+        // -> temporarily disabled (as mostly unused)
+        self.transformMap = [:]
+        self.transformPlan = []
         
         self.nParameterFunction = try Cipher.getThrottlingFunctionCode(js: js) //try Cipher.getNParameterFunction(js: js)
     }
