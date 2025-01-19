@@ -33,9 +33,25 @@ public struct YouTubeMetadata: Sendable {
     @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
     static func metadata(from videoDetails: InnerTube.VideoInfo.VideoDetails) -> Self {
         YouTubeMetadata(
-            title: videoDetails.title,
-            description: videoDetails.shortDescription,
+            title: videoDetails.title ?? "",
+            description: videoDetails.shortDescription ?? "",
             thumbnail: videoDetails.thumbnail.thumbnails.map { YouTubeMetadata.Thumbnail(url: $0.url) }.last
+        )
+    }
+    
+    /// Initialize YouTubeMetadata from multiple video details - choosing the first available information each.
+    ///
+    /// - Parameters:
+    ///   - videoDetails: The video details from InnerTube.VideoInfo.VideoDetails.
+    /// - Returns: A YouTubeMetadata instance.
+    @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
+    static func metadata(from videoDetails: [InnerTube.VideoInfo.VideoDetails]) -> Self? {
+        guard let title = videoDetails.lazy.compactMap({ $0.title }).first else { return nil }
+        
+        return YouTubeMetadata(
+            title: title,
+            description: videoDetails.lazy.compactMap { $0.shortDescription }.first ?? "",
+            thumbnail: videoDetails.first(where: { !$0.thumbnail.thumbnails.isEmpty })?.thumbnail.thumbnails.map { YouTubeMetadata.Thumbnail(url: $0.url) }.last
         )
     }
     
