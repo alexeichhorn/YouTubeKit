@@ -138,8 +138,11 @@ class InnerTube {
         request.httpMethod = "post"
         request.httpBody = data
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
+        request.addValue(ytcfg.userAgent ?? "Mozilla/5.0", forHTTPHeaderField: "User-Agent")
         request.addValue("en-US,en", forHTTPHeaderField: "accept-language")
+        
+        request.addValue(ytcfg.visitorData ?? "", forHTTPHeaderField: "X-Goog-Visitor-Id")
+        request.addValue("https://www.youtube.com", forHTTPHeaderField: "Origin")
         
         for (key, value) in headers {
             request.setValue(value, forHTTPHeaderField: key)
@@ -235,8 +238,9 @@ class InnerTube {
     func player(videoID: String) async throws -> VideoInfo {
         let endpoint = baseURL + "/player"
         let query = [
-            URLQueryItem(name: "key", value: apiKey)
-        ]
+            URLQueryItem(name: "key", value: apiKey),
+            URLQueryItem(name: "prettyPrint", value: "false")
+        ].filter { !($0.value?.isEmpty ?? true) }
         let request = playerRequest(forVideoID: videoID)
         return try await callAPI(endpoint: endpoint, query: query, object: request)
     }

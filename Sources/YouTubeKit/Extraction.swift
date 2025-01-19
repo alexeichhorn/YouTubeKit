@@ -124,6 +124,40 @@ class Extraction {
         return nil
     }
     
+    struct YtCfg: Decodable {
+        let VISITOR_DATA: String?
+        let INNERTUBE_CONTEXT: Context?
+        
+        struct Context: Decodable {
+            let client: Client
+            
+            struct Client: Decodable {
+                let visitorData: String?
+                let userAgent: String?
+            }
+        }
+        
+        var visitorData: String? {
+            VISITOR_DATA ?? INNERTUBE_CONTEXT?.client.visitorData
+        }
+        
+        var userAgent: String? {
+            INNERTUBE_CONTEXT?.client.userAgent
+        }
+    }
+    
+    class func extractYtCfg(from html: String) throws -> YtCfg {
+        if #available(iOS 16.0, macOS 13.0, watchOS 9.0, tvOS 16.0, *) {
+            let regex = #/ytcfg\.set\s*\(\s*(?={)/#
+            let cfg = try parseForObject(YtCfg.self, html: html, precedingRegex: regex)
+            return cfg
+        } else {
+            let regex = NSRegularExpression(#"ytcfg\.set\s*\(\s*"#)
+            let cfg = try parseForObject(YtCfg.self, html: html, precedingRegex: regex)
+            return cfg
+        }
+    }
+    
     /// Parses input html to find the end of a JavaScript object.
     /// - parameter html: HTML to be parsed for an object.
     /// - parameter precedingRegex: Regex to find the string preceding the object.
