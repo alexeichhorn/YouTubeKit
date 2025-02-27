@@ -215,8 +215,15 @@ class InnerTube {
             let approxDurationMs: String?
             let audioSampleRate: String?
             let audioChannels: Int?
+            let audioTrack: AudioTrack?
             let signatureCipher: String? // not tested yet
             var s: String? // assigned from Extraction.applyDescrambler
+        }
+        
+        struct AudioTrack: Decodable {
+            let displayName: String
+            let id: String
+            let audioIsDefault: Bool
         }
     }
     

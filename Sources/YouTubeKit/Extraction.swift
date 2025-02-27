@@ -406,6 +406,16 @@ class Extraction {
         }
     }
     
+    /// Filter out all audio streams that are not original language (i.e. dubbed)
+    class func filterOutDubbedAudio(streamManifest: [InnerTube.StreamingData.Format]) -> [InnerTube.StreamingData.Format] {
+        streamManifest.filter { stream in
+            if let audioTrack = stream.audioTrack {
+                return audioTrack.displayName.lowercased().hasSuffix("original")
+            }
+            return true
+        }
+    }
+    
     /// Breaks up the data in the ``type`` key of the manifest, which contains the
     /// mime type and codecs serialized together, and splits them into separate elements.
     /// _Example_: mimeTypeCodec(#"audio/webm; codecs="opus""#) -> ("audio/webm", ["opus"])

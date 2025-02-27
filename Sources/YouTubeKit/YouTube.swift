@@ -252,6 +252,9 @@ public class YouTube {
                             try await Extraction.applySignature(streamManifest: &streamManifest, videoInfo: videoInfo, js: js)
                         }
                         
+                        // filter out dubbed audio tracks
+                        streamManifest = Extraction.filterOutDubbedAudio(streamManifest: streamManifest)
+                        
                         let newStreams = streamManifest.compactMap { try? Stream(format: $0) }
                         
                         // make sure only one stream per itag exists
