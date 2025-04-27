@@ -47,6 +47,11 @@ public class YouTube {
 
     public let videoID: String
     
+    public static func extractStreams(forVideoID videoID: String, method: ExtractionMethod) async throws -> [Stream] {
+        let youtube = YouTube(videoID: videoID, methods: [method])
+        return try await youtube.streams
+    }
+    
     var watchURL: URL {
         URL(string: "https://youtube.com/watch?v=\(videoID)")!
     }
@@ -176,6 +181,15 @@ public class YouTube {
         }
     }
     
+    /// Retrieves the YouTube player JavaScript code.
+    /// 
+    /// This JavaScript contains the signature deciphering algorithms needed to generate valid video URLs.
+    /// The implementation now supports dynamic detection of the global variable used for signature algorithms
+    /// based on the fix from YouTube.js PR #953, which improves compatibility with YouTube's
+    /// frequently changing obfuscation techniques.
+    ///
+    /// - Returns: The JavaScript content from YouTube player
+    /// - Throws: Error if JavaScript cannot be retrieved
     var js: String {
         get async throws {
             if let cached = _js {
