@@ -58,8 +58,9 @@ class Extraction {
     class func getYTPlayerConfig(html: String) throws -> PlayerConfig {
         os_log("finding initial function name", log: log, type: .debug)
         let configPatterns = [
-            NSRegularExpression(#"ytplayer\.config\s*=\s*"#),
-            NSRegularExpression(#"ytInitialPlayerResponse\s*=\s*"#)
+            // Outdated Regex
+            // NSRegularExpression(#"ytplayer\.config\s*=\s*(\{)"#),
+            NSRegularExpression(#"ytInitialPlayerResponse\s*=\s*(\{)"#)
         ]
         
         for pattern in configPatterns {
@@ -112,7 +113,7 @@ class Extraction {
         return (nil, [nil])
     }
     
-    /// Extracts the signature timestamp (sts) from javascript. 
+    /// Extracts the signature timestamp (sts) from javascript.
     /// Used to pass into InnerTube to tell API what sig/player is in use.
     /// - parameter js: The javascript contents of the watch page
     /// - returns: The signature timestamp (sts) or nil if not found
@@ -129,18 +130,18 @@ class Extraction {
     /// This implementation is based on the fix from YouTube.js PR #953 which uses a global variable
     /// to find the signature algorithm instead of relying on hardcoded variable names.
     /// YouTube.js PR #953 - https://github.com/LuanRT/YouTube.js/pull/953
-    /// 
+    ///
     /// - Parameter js: The JavaScript content from YouTube player
     /// - Returns: The name of the global variable used for signature deciphering, or nil if not found
     class func extractGlobalVariable(js: String) -> String? {
         // Try to match common variable patterns as in YouTube.js
         let patterns = [
             // Match variable declarations that contain signature-related code
-            NSRegularExpression(#"var (\w+)={[^}]+}"#),
+            NSRegularExpression(#"var (\w+)=\{[^}]+\}"#),
             // Match function declarations that handle signature splitting
-            NSRegularExpression(#"function\\((\w+)\\)\\{\\w+=\\w+\\.split\\(""\\)"#),
+            NSRegularExpression(#"function\((\w+)\)\{\w+=\w+\.split\(""\)"#),
             // Match variables that might contain signature transformation functions
-            NSRegularExpression(#"var (\w+)=\{[\\s\\S]*?\\};"#)
+            NSRegularExpression(#"var (\w+)=\{[\s\S]*?\};"#)
         ]
         
         for pattern in patterns {
