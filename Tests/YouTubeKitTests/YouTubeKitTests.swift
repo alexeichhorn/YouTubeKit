@@ -169,7 +169,7 @@ final class YouTubeKitTests: XCTestCase {
     }
     
     func testLivestreamHlsManifestUrl() async {
-        let youtube = YouTube(videoID: "wG4YaEcNlb0")
+        let youtube = YouTube(videoID: "jKHvbJe9c_Y")
         do {
             let livestreams = try await youtube.livestreams
             XCTAssert(livestreams.count > 0)
@@ -182,7 +182,7 @@ final class YouTubeKitTests: XCTestCase {
     }
     
     func testLivestreamHlsManifestUrlRemote() async {
-        let youtube = YouTube(videoID: "wG4YaEcNlb0", methods: [.remote])
+        let youtube = YouTube(videoID: "jKHvbJe9c_Y", methods: [.remote])
         do {
             let livestreams = try await youtube.livestreams
             XCTAssert(livestreams.count > 0)
@@ -242,7 +242,7 @@ final class YouTubeKitTests: XCTestCase {
         let youtube = YouTube(videoID: "Z-Nwo-ypKtM")
         do {
             let metadata = try await youtube.metadata!
-            XCTAssertEqual(metadata.title, "franceinfo - DIRECT TV - actualité france et monde, interviews, documentaires et analyses")
+            XCTAssertEqual(metadata.title, "franceinfo - DIRECT TV - actualité France et monde, interviews, documentaires et analyses")
             XCTAssertFalse(metadata.description.isEmpty)
             XCTAssertNotNil(metadata.thumbnail!.url)
         } catch let error {
