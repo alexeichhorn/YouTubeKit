@@ -230,6 +230,61 @@ class Cipher {
         let index: Int?
         
         if #available(iOS 16.0, macOS 13.0, watchOS 9.0, tvOS 16.0, *) {
+            
+            if let (globalVarName, globalList) = try interpretPlayerGlobalVar(js: js) {
+                if let debugStringIndex = globalList.firstIndex(where: { $0.hasSuffix("_w8_") }) {
+                    
+                    /* pattern with conditionals: #/
+                    (?xs)
+                    [;\n](?:
+                        (?P<f>function\s+)|
+                        (?:var\s+)?
+                    )(?P<funcname>[a-zA-Z0-9_$]+)\s*(?(f)|=\s*function\s*)
+                    \((?P<argname>[a-zA-Z0-9_$]+)\)\s*\{
+                    (?:(?!\}[;\n]).)+
+                    \}\s*catch\(\s*[a-zA-Z0-9_$]+\s*\)\s*
+                    \{\s*return\s+%s\[%d\]\s*\+\s*(?P=argname)\s*\}\s*return\s+[^}]+\}[;\n]
+                    /#*/
+                    
+                    let functionPattern = #"""
+                    (?xs)
+                    [;\n](?:
+                        (?P<f>function\s+)
+                    )(?P<funcname>[a-zA-Z0-9_$]+)\s
+                    \((?P<argname>[a-zA-Z0-9_$]+)\)\s*\{
+                    (?:(?!\}[;\n]).)+
+                    \}\s*catch\(\s*[a-zA-Z0-9_$]+\s*\)\s*
+                    \{\s*return\s+{{varname}}\[{{index}}\]\s*\+\s*(?P=argname)\s*\}\s*return\s+[^}]+\}[;\n]
+                    """#.replacingOccurrences(of: "{{varname}}", with: globalVarName).replacingOccurrences(of: "{{index}}", with: "\(debugStringIndex)")
+                    
+                    let nonFunctionPattern = #"""
+                    (?xs)
+                    [;\n](?:
+                        (?:var\s+)?
+                    )(?P<funcname>[a-zA-Z0-9_$]+)\s*(?:=\s*function\s*)
+                    \((?P<argname>[a-zA-Z0-9_$]+)\)\s*\{
+                    (?:(?!\}[;\n]).)+
+                    \}\s*catch\(\s*[a-zA-Z0-9_$]+\s*\)\s*
+                    \{\s*return\s+{{varname}}\[{{index}}\]\s*\+\s*(?P=argname)\s*\}\s*return\s+[^}]+\}[;\n]
+                    """#.replacingOccurrences(of: "{{varname}}", with: globalVarName).replacingOccurrences(of: "{{index}}", with: "\(debugStringIndex)")
+                    
+                    if let match = try Regex(functionPattern).firstMatch(in: js) {
+                        let funcname = match.output["funcname"]?.substring ?? ""
+                        functionName = String(funcname)
+                        return functionName
+                    } else if let match = try Regex(nonFunctionPattern).firstMatch(in: js) {
+                        let funcname = match.output["funcname"]?.substring ?? ""
+                        functionName = String(funcname)
+                        return functionName
+                    } else {
+                        os_log("failed to find function name in first attempt", log: log, type: .info)
+                    }
+                }
+            }
+            
+            
+            
+            
             /*
              Full regex pattern:
              """
@@ -330,6 +385,58 @@ class Cipher {
         throw YouTubeKitError.regexMatchError
     }
     
+    private class func extractPlayerGlobalVar(js: String) throws -> (code: String, name: String, value: String)? {
+        if #available(iOS 16.0, macOS 13.0, watchOS 9.0, tvOS 16.0, *) {
+            
+            let pattern = #/
+            (?x)
+            (?P<q1>["\'])use\s+strict(?P=q1);\s*
+            (?P<code>
+                var\s+(?P<name>[a-zA-Z0-9_$]+)\s*=\s*
+                (?P<value>
+                    (?P<q2>["\'])(?:(?!(?P=q2)).|\\.)+(?P=q2)
+                    \.split\((?P<q3>["\'])(?:(?!(?P=q3)).)+(?P=q3)\)
+                    |\[\s*(?:(?P<q4>["\'])(?:(?!(?P=q4)).|\\.)*(?P=q4)\s*,?\s*)+\]
+                )
+            )[;,]
+            /#
+            
+            if let match = try pattern.firstMatch(in: js) {
+                let code = String(match.code)
+                let name = String(match.name)
+                let value = String(match.value)
+                
+                return (code, name, value)
+            }
+            
+            return nil
+            
+        } else {
+            // TODO: implement
+            return nil
+        }
+    }
+    
+    private class func interpretPlayerGlobalVar(js: String) throws -> (name: String, globalList: [String])? {
+        
+        guard let (code, name, value) = try extractPlayerGlobalVar(js: js) else {
+            return nil
+        }
+        
+        guard let context = JSContext() else {
+            os_log("failed to create JSContext", log: log, type: .error)
+            return nil
+        }
+        
+        guard let expressionResult = context.evaluateScript(value), expressionResult.isArray else {
+            os_log("failed to evaluate script", log: log, type: .error)
+            return nil
+        }
+        let globalList = expressionResult.toArray() as? [String] ?? []
+        
+        return (name, globalList)
+    }
+    
     /// Extract the raw code for the throttling function.
     class func getThrottlingFunctionCode(js: String, functionName: String = "processNSignature") throws -> String {
         let name = try getThrottlingFunctionName(js: js)
@@ -345,8 +452,35 @@ class Cipher {
         
         var code = try Parser.findJavascriptFunctionFromStartpoint(html: js, startPoint: match.end)
         
+        if #available(iOS 16.0, macOS 13.0, watchOS 9.0, tvOS 16.0, *) {
+            if let (varname, globalList) = try interpretPlayerGlobalVar(js: js), let (varcode, _, _) = try extractPlayerGlobalVar(js: js) {
+                
+                //code = varcode + "; " + code
+                code = varcode + "; " + code[code.index(after: code.startIndex)..<code.index(before: code.endIndex)]
+                code = "{" + code + "}"
+                
+                let undefinedIndex = globalList.firstIndex(where: { $0 == "undefined" })
+                let undefinedIndexRegex = undefinedIndex.map { String($0) } ?? #"\d+"# // alternatively we match all integers
+                
+                let fixupPattern = #"""
+                    (?x)
+                    ;\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(?:
+                        (["\'])undefined\1|
+                        {{varname}}\[{{undefined_idx}}\]
+                    )\s*\)\s*return\s+{{argname}};
+                    """#
+                    .replacingOccurrences(of: "{{varname}}", with: varname)
+                    .replacingOccurrences(of: "{{undefined_idx}}", with: undefinedIndexRegex)
+                    .replacingOccurrences(of: "{{argname}}", with: variableName)
+                
+                let fixupRegex = try Regex(fixupPattern)
+                code.replace(fixupRegex, with: ";")
+            }
+        }
+        
+        
         // workaround for "typeof" issue
-        code.replace(NSRegularExpression(#";\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(["\'])undefined\1\s*\)\s*return\s+\#(variableName);"#), with: ";")
+        //code.replace(NSRegularExpression(#";\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(["\'])undefined\1\s*\)\s*return\s+\#(variableName);"#), with: ";")
         
         return "function \(functionName)(\(variableName)) \(code)"
     }
