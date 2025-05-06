@@ -224,15 +224,15 @@ class Cipher {
     }
     
     /// Extract the name of the function that computes the throttling parameter.
-    class func getThrottlingFunctionName(js: String) throws -> String {
+    class private func getThrottlingFunctionName(js: String, globalVar: PlayerGlobalVar?) throws -> String {
         
         let functionName: String
         let index: Int?
         
         if #available(iOS 16.0, macOS 13.0, watchOS 9.0, tvOS 16.0, *) {
             
-            if let (globalVarName, globalList) = try interpretPlayerGlobalVar(js: js) {
-                if let debugStringIndex = globalList.firstIndex(where: { $0.hasSuffix("_w8_") }) {
+            if let globalVar {
+                if let debugStringIndex = globalVar.globalList.firstIndex(where: { $0.hasSuffix("_w8_") }) {
                     
                     /* pattern with conditionals: #/
                     (?xs)
@@ -255,7 +255,7 @@ class Cipher {
                     (?:(?!\}[;\n]).)+
                     \}\s*catch\(\s*[a-zA-Z0-9_$]+\s*\)\s*
                     \{\s*return\s+{{varname}}\[{{index}}\]\s*\+\s*(?P=argname)\s*\}\s*return\s+[^}]+\}[;\n]
-                    """#.replacingOccurrences(of: "{{varname}}", with: globalVarName).replacingOccurrences(of: "{{index}}", with: "\(debugStringIndex)")
+                    """#.replacingOccurrences(of: "{{varname}}", with: globalVar.name).replacingOccurrences(of: "{{index}}", with: "\(debugStringIndex)")
                     
                     let nonFunctionPattern = #"""
                     (?xs)
@@ -266,7 +266,7 @@ class Cipher {
                     (?:(?!\}[;\n]).)+
                     \}\s*catch\(\s*[a-zA-Z0-9_$]+\s*\)\s*
                     \{\s*return\s+{{varname}}\[{{index}}\]\s*\+\s*(?P=argname)\s*\}\s*return\s+[^}]+\}[;\n]
-                    """#.replacingOccurrences(of: "{{varname}}", with: globalVarName).replacingOccurrences(of: "{{index}}", with: "\(debugStringIndex)")
+                    """#.replacingOccurrences(of: "{{varname}}", with: globalVar.name).replacingOccurrences(of: "{{index}}", with: "\(debugStringIndex)")
                     
                     if let match = try Regex(functionPattern).firstMatch(in: js) {
                         let funcname = match.output["funcname"]?.substring ?? ""
@@ -385,6 +385,14 @@ class Cipher {
         throw YouTubeKitError.regexMatchError
     }
     
+    // MARK: - Global Var Extraction
+    
+    private struct PlayerGlobalVar {
+        let name: String
+        let globalList: [String]
+        let code: String
+    }
+    
     private class func extractPlayerGlobalVar(js: String) throws -> (code: String, name: String, value: String)? {
         if #available(iOS 16.0, macOS 13.0, watchOS 9.0, tvOS 16.0, *) {
             
@@ -412,12 +420,12 @@ class Cipher {
             return nil
             
         } else {
-            // TODO: implement
+            // TODO: currently not supported on older platforms
             return nil
         }
     }
     
-    private class func interpretPlayerGlobalVar(js: String) throws -> (name: String, globalList: [String])? {
+    private class func interpretPlayerGlobalVar(js: String) throws -> PlayerGlobalVar? {
         
         guard let (code, name, value) = try extractPlayerGlobalVar(js: js) else {
             return nil
@@ -429,17 +437,22 @@ class Cipher {
         }
         
         guard let expressionResult = context.evaluateScript(value), expressionResult.isArray else {
-            os_log("failed to evaluate script", log: log, type: .error)
+            os_log("failed to evaluate globalvar script", log: log, type: .error)
             return nil
         }
         let globalList = expressionResult.toArray() as? [String] ?? []
         
-        return (name, globalList)
+        return PlayerGlobalVar(name: name, globalList: globalList, code: code)
     }
+    
+    // MARK: -
     
     /// Extract the raw code for the throttling function.
     class func getThrottlingFunctionCode(js: String, functionName: String = "processNSignature") throws -> String {
-        let name = try getThrottlingFunctionName(js: js)
+        
+        let globalVar = try interpretPlayerGlobalVar(js: js)
+        
+        let name = try getThrottlingFunctionName(js: js, globalVar: globalVar)
         
         let regex = NSRegularExpression(NSRegularExpression.escapedPattern(for: name) + #"=function\((\w)\)"#)
         guard let (match, groupMatches) = regex.firstMatch(in: js, includingGroups: [1]) else {
@@ -453,13 +466,13 @@ class Cipher {
         var code = try Parser.findJavascriptFunctionFromStartpoint(html: js, startPoint: match.end)
         
         if #available(iOS 16.0, macOS 13.0, watchOS 9.0, tvOS 16.0, *) {
-            if let (varname, globalList) = try interpretPlayerGlobalVar(js: js), let (varcode, _, _) = try extractPlayerGlobalVar(js: js) {
+            if let globalVar {
                 
-                //code = varcode + "; " + code
-                code = varcode + "; " + code[code.index(after: code.startIndex)..<code.index(before: code.endIndex)]
-                code = "{" + code + "}"
+                //code = globalVar.code + "; " + code (but removing opening and closing curly braces)
+                code = globalVar.code + "; " + code[code.index(after: code.startIndex)..<code.index(before: code.endIndex)]
+                code = "{" + code + "}"  // re-add curly braces
                 
-                let undefinedIndex = globalList.firstIndex(where: { $0 == "undefined" })
+                let undefinedIndex = globalVar.globalList.firstIndex(where: { $0 == "undefined" })
                 let undefinedIndexRegex = undefinedIndex.map { String($0) } ?? #"\d+"# // alternatively we match all integers
                 
                 let fixupPattern = #"""
@@ -469,7 +482,7 @@ class Cipher {
                         {{varname}}\[{{undefined_idx}}\]
                     )\s*\)\s*return\s+{{argname}};
                     """#
-                    .replacingOccurrences(of: "{{varname}}", with: varname)
+                    .replacingOccurrences(of: "{{varname}}", with: globalVar.name)
                     .replacingOccurrences(of: "{{undefined_idx}}", with: undefinedIndexRegex)
                     .replacingOccurrences(of: "{{argname}}", with: variableName)
                 
@@ -477,10 +490,6 @@ class Cipher {
                 code.replace(fixupRegex, with: ";")
             }
         }
-        
-        
-        // workaround for "typeof" issue
-        //code.replace(NSRegularExpression(#";\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(["\'])undefined\1\s*\)\s*return\s+\#(variableName);"#), with: ";")
         
         return "function \(functionName)(\(variableName)) \(code)"
     }
