@@ -431,6 +431,7 @@ class Cipher {
             return nil
         }
         
+#if canImport(JavaScriptCore)
         guard let context = JSContext() else {
             os_log("failed to create JSContext", log: log, type: .error)
             return nil
@@ -443,6 +444,9 @@ class Cipher {
         let globalList = expressionResult.toArray() as? [String] ?? []
         
         return PlayerGlobalVar(name: name, globalList: globalList, code: code)
+#else
+        return nil
+#endif
     }
     
     // MARK: -
