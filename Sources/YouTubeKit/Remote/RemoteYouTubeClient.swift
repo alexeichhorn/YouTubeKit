@@ -42,6 +42,8 @@ class RemoteYouTubeClient {
             let applyCookiesOnRedirect: Bool
             let saveIntermediateResponses: Bool
             
+            let maxMessageChunkSize: Int?
+            
             var urlRequest: URLRequest {
                 var request = URLRequest(url: url)
                 request.httpMethod = method
@@ -121,10 +123,10 @@ class RemoteYouTubeClient {
                     if request.saveIntermediateResponses {
                         remoteResponse.intermediates = delegate.intermediateResponses.map { RemoteURLResponse(id: request.id, data: Data(), response: $0) }
                     }
-                    try await task.send(remoteResponse, maxChunkSize: 800_000, encoder: encoder)
+                    try await task.send(remoteResponse, maxChunkSize: request.maxMessageChunkSize, encoder: encoder)
                 } else {
                     let (data, response) = try await URLSession.shared.data(for: request.urlRequest)
-                    try await task.send(RemoteURLResponse(id: request.id, data: data, response: response), maxChunkSize: 800_000, encoder: encoder)
+                    try await task.send(RemoteURLResponse(id: request.id, data: data, response: response), maxChunkSize: request.maxMessageChunkSize, encoder: encoder)
                 }
             }
         }

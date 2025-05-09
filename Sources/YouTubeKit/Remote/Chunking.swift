@@ -17,7 +17,13 @@ extension FixedWidthInteger {
 @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
 extension URLSessionWebSocketTask {
     
-    func send(_ value: some Encodable, maxChunkSize: Int, encoder: JSONEncoder = JSONEncoder()) async throws {
+    /// - parameter maxChunkSize: The maximum size of a chunk. If nil, the entire object is sent in one chunk without any header.
+    func send(_ value: some Encodable, maxChunkSize: Int?, encoder: JSONEncoder = JSONEncoder()) async throws {
+        guard let maxChunkSize else {
+            try await send(value, encoder: encoder)
+            return
+        }
+        
         let encoded = try encoder.encode(value)
         
         let packetIdentifier = UInt32.random(in: 0...UInt32.max)
@@ -36,7 +42,7 @@ extension URLSessionWebSocketTask {
             let end = min(offset + maxChunkSize, encoded.count)
             let slice = encoded[offset..<end]
             let header = headerBytes(for: chunkIndex, totalChunks: totalChunks)
-            print("sending chunk \(chunkIndex+1) of \(totalChunks) with size \(slice.count)") // TODO: remove
+            //print("sending chunk \(chunkIndex+1) of \(totalChunks) with size \(slice.count)") // TODO: remove
             try await send(.data(header + slice))
         }
     }
