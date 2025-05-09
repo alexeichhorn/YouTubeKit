@@ -33,6 +33,7 @@ class RemoteYouTubeClient {
         }
         
         struct RemoteURLRequest: Decodable {
+            let id: String
             let url: URL
             let method: String
             let body: Data?
@@ -40,6 +41,8 @@ class RemoteYouTubeClient {
             let allowRedirects: Bool
             let applyCookiesOnRedirect: Bool
             let saveIntermediateResponses: Bool
+            
+            let maxMessageChunkSize: Int?
             
             var urlRequest: URLRequest {
                 var request = URLRequest(url: url)
@@ -55,13 +58,15 @@ class RemoteYouTubeClient {
         }
         
         struct RemoteURLResponse: Encodable {
+            let id: String
             let url: URL?
             let data: Data
             let statusCode: Int?
             let headers: [String: String]
             var intermediates: [RemoteURLResponse]?
             
-            init(data: Data, response: URLResponse) {
+            init(id: String, data: Data, response: URLResponse) {
+                self.id = id
                 self.url = response.url
                 self.data = data
                 let httpResponse = response as? HTTPURLResponse
@@ -114,14 +119,14 @@ class RemoteYouTubeClient {
                     let session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
                     let (data, response) = try await session.data(for: request.urlRequest)
                     
-                    var remoteResponse = RemoteURLResponse(data: data, response: response)
+                    var remoteResponse = RemoteURLResponse(id: request.id, data: data, response: response)
                     if request.saveIntermediateResponses {
-                        remoteResponse.intermediates = delegate.intermediateResponses.map { RemoteURLResponse(data: Data(), response: $0) }
+                        remoteResponse.intermediates = delegate.intermediateResponses.map { RemoteURLResponse(id: request.id, data: Data(), response: $0) }
                     }
-                    try await task.send(remoteResponse, encoder: encoder)
+                    try await task.send(remoteResponse, maxChunkSize: request.maxMessageChunkSize, encoder: encoder)
                 } else {
                     let (data, response) = try await URLSession.shared.data(for: request.urlRequest)
-                    try await task.send(RemoteURLResponse(data: data, response: response), encoder: encoder)
+                    try await task.send(RemoteURLResponse(id: request.id, data: data, response: response), maxChunkSize: request.maxMessageChunkSize, encoder: encoder)
                 }
             }
         }
