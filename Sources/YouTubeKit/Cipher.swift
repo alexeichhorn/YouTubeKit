@@ -260,54 +260,6 @@ class Cipher {
                             }
                         }
                     }
-                    
-                    
-                    // TODO: remove below
-                        
-                    /* pattern with conditionals: #/
-                    (?xs)
-                    [;\n](?:
-                        (?P<f>function\s+)|
-                        (?:var\s+)?
-                    )(?P<funcname>[a-zA-Z0-9_$]+)\s*(?(f)|=\s*function\s*)
-                    \((?P<argname>[a-zA-Z0-9_$]+)\)\s*\{
-                    (?:(?!\}[;\n]).)+
-                    \}\s*catch\(\s*[a-zA-Z0-9_$]+\s*\)\s*
-                    \{\s*return\s+%s\[%d\]\s*\+\s*(?P=argname)\s*\}\s*return\s+[^}]+\}[;\n]
-                    /#*/
-                    let functionPattern = #"""
-                    (?xs)
-                    [;\n](?:
-                        (?P<f>function\s+)
-                    )(?P<funcname>[a-zA-Z0-9_$]+)\s
-                    \((?P<argname>[a-zA-Z0-9_$]+)\)\s*\{
-                    (?:(?!\}[;\n]).)+
-                    \}\s*catch\(\s*[a-zA-Z0-9_$]+\s*\)\s*
-                    \{\s*return\s+{{varname}}\[{{index}}\]\s*\+\s*(?P=argname)\s*\}\s*return\s+[^}]+\}[;\n]
-                    """#.replacingOccurrences(of: "{{varname}}", with: globalVar.name).replacingOccurrences(of: "{{index}}", with: "\(debugStringIndex)")
-                    
-                    let nonFunctionPattern = #"""
-                    (?xs)
-                    [;\n](?:
-                        (?:var\s+)?
-                    )(?P<funcname>[a-zA-Z0-9_$]+)\s*(?:=\s*function\s*)
-                    \((?P<argname>[a-zA-Z0-9_$]+)\)\s*\{
-                    (?:(?!\}[;\n]).)+
-                    \}\s*catch\(\s*[a-zA-Z0-9_$]+\s*\)\s*
-                    \{\s*return\s+{{varname}}\[{{index}}\]\s*\+\s*(?P=argname)\s*\}\s*return\s+[^}]+\}[;\n]
-                    """#.replacingOccurrences(of: "{{varname}}", with: globalVar.name).replacingOccurrences(of: "{{index}}", with: "\(debugStringIndex)")
-                    
-                    if let match = try Regex(functionPattern).firstMatch(in: js) {
-                        let funcname = match.output["funcname"]?.substring ?? ""
-                        functionName = String(funcname)
-                        return functionName
-                    } else if let match = try Regex(nonFunctionPattern).firstMatch(in: js) {
-                        let funcname = match.output["funcname"]?.substring ?? ""
-                        functionName = String(funcname)
-                        return functionName
-                    } else {
-                        os_log("failed to find function name in first attempt", log: log, type: .info)
-                    }
                 }
             }
             
