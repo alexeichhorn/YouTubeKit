@@ -232,8 +232,38 @@ class Cipher {
         if #available(iOS 16.0, macOS 13.0, watchOS 9.0, tvOS 16.0, *) {
             
             if let globalVar {
-                if let debugStringIndex = globalVar.globalList.firstIndex(where: { $0.hasSuffix("_w8_") }) {
+                if let debugStringIndex = globalVar.globalList.firstIndex(where: { $0.hasSuffix("-_w8_") }) {
                     
+                    let pattern = #"""
+                    (?x)
+                    \{\s*return\s+{{varname}}\[{{index}}\]\s*\+\s*(?P<argname>[a-zA-Z0-9_$]+)\s*\}
+                    """#.replacingOccurrences(of: "{{varname}}", with: globalVar.name).replacingOccurrences(of: "{{index}}", with: "\(debugStringIndex)")
+                    
+                    if let match = try Regex(pattern).firstMatch(in: js) {
+                        let argname = match.output["argname"]?.substring ?? ""
+                        let innerReversedContent = js[..<match.range.lowerBound].reversed()
+                        
+                        let pattern = #"""
+                        (?x)
+                        \{\s*\){{argname}}\(\s*
+                        (?:
+                            (?P<funcname_a>[a-zA-Z0-9_$]+)\s*noitcnuf\s*
+                            |noitcnuf\s*=\s*(?P<funcname_b>[a-zA-Z0-9_$]+)(?:\s+rav)?
+                        )[;\n]
+                        """#.replacingOccurrences(of: "{{argname}}", with: String(argname.reversed()))
+                        
+                        if let match = try Regex(pattern).firstMatch(in: String(innerReversedContent)) {
+                            let a = match.output["funcname_a"]?.substring
+                            let b = match.output["funcname_b"]?.substring
+                            if let funcname = a ?? b {
+                                return String(funcname.reversed())
+                            }
+                        }
+                    }
+                    
+                    
+                    // TODO: remove below
+                        
                     /* pattern with conditionals: #/
                     (?xs)
                     [;\n](?:
@@ -245,7 +275,6 @@ class Cipher {
                     \}\s*catch\(\s*[a-zA-Z0-9_$]+\s*\)\s*
                     \{\s*return\s+%s\[%d\]\s*\+\s*(?P=argname)\s*\}\s*return\s+[^}]+\}[;\n]
                     /#*/
-                    
                     let functionPattern = #"""
                     (?xs)
                     [;\n](?:
@@ -451,6 +480,47 @@ class Cipher {
     
     // MARK: -
     
+    private class func extractFunctionCode(name: String, js: String) throws -> (variableName: String, code: String) {
+        
+        let args: String
+        let codeStart: String.Index
+        
+        if #available(iOS 16.0, macOS 13.0, watchOS 9.0, tvOS 16.0, *) {
+            let pattern = #"""
+            (?xs)
+            (?:
+                function\s+{{name}}|
+                [{;,]\s*{{name}}\s*=\s*function|
+                (?:var|const|let)\s+{{name}}\s*=\s*function
+            )\s*
+            \((?P<args>[^)]*)\)\s*
+            (?P<code>{.+})
+            """#.replacingOccurrences(of: "{{name}}", with: name)
+            if let match = try Regex(pattern).firstMatch(in: js) {
+                args = String(match.output["args"]?.substring ?? "")
+                codeStart = match.output["code"]?.range?.lowerBound ?? match.range.lowerBound
+            } else {
+                throw YouTubeKitError.regexMatchError
+            }
+            
+        } else {
+            let regex = NSRegularExpression(NSRegularExpression.escapedPattern(for: name) + #"=function\((\w)\)"#)
+            guard let (match, groupMatches) = regex.firstMatch(in: js, includingGroups: [1]) else {
+                throw YouTubeKitError.regexMatchError
+            }
+            
+            guard let variableName = groupMatches[1]?.content else {
+                throw YouTubeKitError.regexMatchError
+            }
+            
+            args = variableName
+            codeStart = match.end
+        }
+        
+        let code = try Parser.findJavascriptFunctionFromStartpoint(html: js, startPoint: codeStart)
+        return (args, code)
+    }
+    
     /// Extract the raw code for the throttling function.
     class func getThrottlingFunctionCode(js: String, functionName: String = "processNSignature") throws -> String {
         
@@ -458,16 +528,7 @@ class Cipher {
         
         let name = try getThrottlingFunctionName(js: js, globalVar: globalVar)
         
-        let regex = NSRegularExpression(NSRegularExpression.escapedPattern(for: name) + #"=function\((\w)\)"#)
-        guard let (match, groupMatches) = regex.firstMatch(in: js, includingGroups: [1]) else {
-            throw YouTubeKitError.regexMatchError
-        }
-        
-        guard let variableName = groupMatches[1]?.content else {
-            throw YouTubeKitError.regexMatchError
-        }
-        
-        var code = try Parser.findJavascriptFunctionFromStartpoint(html: js, startPoint: match.end)
+        var (variableName, code) = try extractFunctionCode(name: name, js: js)
         
         if #available(iOS 16.0, macOS 13.0, watchOS 9.0, tvOS 16.0, *) {
             if let globalVar {
