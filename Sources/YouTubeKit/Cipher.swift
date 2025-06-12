@@ -232,8 +232,38 @@ class Cipher {
         if #available(iOS 16.0, macOS 13.0, watchOS 9.0, tvOS 16.0, *) {
             
             if let globalVar {
-                if let debugStringIndex = globalVar.globalList.firstIndex(where: { $0.hasSuffix("_w8_") }) {
+                if let debugStringIndex = globalVar.globalList.firstIndex(where: { $0.hasSuffix("-_w8_") }) {
                     
+                    let pattern = #"""
+                    (?x)
+                    \{\s*return\s+{{varname}}\[{{index}}\]\s*\+\s*(?P<argname>[a-zA-Z0-9_$]+)\s*\}
+                    """#.replacingOccurrences(of: "{{varname}}", with: globalVar.name).replacingOccurrences(of: "{{index}}", with: "\(debugStringIndex)")
+                    
+                    if let match = try Regex(pattern).firstMatch(in: js) {
+                        let argname = match.output["argname"]?.substring ?? ""
+                        let innerReversedContent = js[..<match.range.lowerBound].reversed()
+                        
+                        let pattern = #"""
+                        (?x)
+                        \{\s*\){{argname}}\(\s*
+                        (?:
+                            (?P<funcname_a>[a-zA-Z0-9_$]+)\s*noitcnuf\s*
+                            |noitcnuf\s*=\s*(?P<funcname_b>[a-zA-Z0-9_$]+)(?:\s+rav)?
+                        )[;\n]
+                        """#.replacingOccurrences(of: "{{argname}}", with: String(argname.reversed()))
+                        
+                        if let match = try Regex(pattern).firstMatch(in: String(innerReversedContent)) {
+                            let a = match.output["funcname_a"]?.substring
+                            let b = match.output["funcname_b"]?.substring
+                            if let funcname = a ?? b {
+                                return String(funcname.reversed())
+                            }
+                        }
+                    }
+                    
+                    
+                    // TODO: remove below
+                        
                     /* pattern with conditionals: #/
                     (?xs)
                     [;\n](?:
@@ -245,7 +275,6 @@ class Cipher {
                     \}\s*catch\(\s*[a-zA-Z0-9_$]+\s*\)\s*
                     \{\s*return\s+%s\[%d\]\s*\+\s*(?P=argname)\s*\}\s*return\s+[^}]+\}[;\n]
                     /#*/
-                    
                     let functionPattern = #"""
                     (?xs)
                     [;\n](?:
