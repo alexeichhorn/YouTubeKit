@@ -55,6 +55,7 @@ public struct YouTubeMetadata: Sendable {
         return YouTubeMetadata(
             title: title,
             description: videoDetails.lazy.compactMap { $0.shortDescription }.first ?? "",
+            duration: videoDetails.lazy.compactMap { TimeInterval($0.lengthSeconds) }.first ?? 0,
             thumbnail: videoDetails.first(where: { !$0.thumbnail.thumbnails.isEmpty })?.thumbnail.thumbnails.map { YouTubeMetadata.Thumbnail(url: $0.url) }.last
         )
     }
