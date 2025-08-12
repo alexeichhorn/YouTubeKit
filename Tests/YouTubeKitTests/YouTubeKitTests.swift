@@ -221,6 +221,7 @@ final class YouTubeKitTests: XCTestCase {
             XCTAssertEqual(metadata.title, "Le Maroc Vu du Ciel (Documentaire de Yann Arthus-Bertrand)")
             XCTAssertFalse(metadata.description.isEmpty)
             XCTAssert([URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/sddefault.jpg")!, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/hqdefault.jpg")!].contains(metadata.thumbnail!.url))
+            XCTAssertEqual(metadata.duration, (60+19)*60+34)
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
@@ -233,6 +234,7 @@ final class YouTubeKitTests: XCTestCase {
             XCTAssertEqual(metadata.title, "Le Maroc Vu du Ciel (Documentaire de Yann Arthus-Bertrand)")
             XCTAssertFalse(metadata.description.isEmpty)
             XCTAssert([URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/sddefault.jpg")!, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/hqdefault.jpg")!].contains(metadata.thumbnail!.url))
+            XCTAssertEqual(metadata.duration, (60+19)*60+34)
         } catch let error {
             XCTFail("did throw error: \(error)")
         }

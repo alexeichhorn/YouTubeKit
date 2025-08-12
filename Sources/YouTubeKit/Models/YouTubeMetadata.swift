@@ -15,6 +15,9 @@ public struct YouTubeMetadata: Sendable {
 
     /// The description of the YouTube video.
     public let description: String
+    
+    /// The duration of the YouTube video in seconds.
+    public let duration: TimeInterval
 
     /// The thumbnail image of the YouTube video, if available.
     public let thumbnail: Thumbnail?
@@ -35,6 +38,7 @@ public struct YouTubeMetadata: Sendable {
         YouTubeMetadata(
             title: videoDetails.title ?? "",
             description: videoDetails.shortDescription ?? "",
+            duration: TimeInterval(videoDetails.lengthSeconds) ?? 0,
             thumbnail: videoDetails.thumbnail.thumbnails.map { YouTubeMetadata.Thumbnail(url: $0.url) }.last
         )
     }

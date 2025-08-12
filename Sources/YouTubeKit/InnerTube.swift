@@ -177,6 +177,7 @@ class InnerTube {
             let videoId: String
             let title: String?
             let shortDescription: String?
+            let lengthSeconds: String
             let thumbnail: Thumbnail
 
             struct Thumbnail: Decodable {
