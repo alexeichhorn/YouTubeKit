@@ -49,20 +49,20 @@ class InnerTube {
     
     // overview of clients: https://github.com/zerodytrash/YouTube-Internal-Clients
     private let defaultClients = [
-        ClientType.web: Client(name: "WEB", version: "2.20200720.00.02", screen: nil, apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", internalID: 1, userAgent: "Mozilla/5.0"),
-        ClientType.webSafari: Client(name: "WEB", version: "2.20240726.00.00", screen: nil, apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", internalID: 1, userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15,gzip(gfe)"),
-        ClientType.android: Client(name: "ANDROID", version: "19.09.37", screen: nil, apiKey: "AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w", internalID: 3, userAgent: "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip", playerParams: "CgIQBg==", androidSdkVersion: 30),
+        ClientType.web: Client(name: "WEB", version: "2.20250312.04.00", screen: nil, apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", internalID: 1, userAgent: "Mozilla/5.0"),
+        ClientType.webSafari: Client(name: "WEB", version: "2.20250312.04.00", screen: nil, apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", internalID: 1, userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15,gzip(gfe)"),
+        ClientType.android: Client(name: "ANDROID", version: "20.10.38", screen: nil, apiKey: "AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w", internalID: 3, userAgent: "com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip", playerParams: "CgIQBg==", androidSdkVersion: 30),
         ClientType.androidMusic: Client(name: "ANDROID_MUSIC", version: "5.16.51", screen: nil, apiKey: "AIzaSyAOghZGza2MQSZkY_zfZ370N-PUdXEo8AI", internalID: 21, userAgent: "com.google.android.apps.youtube.music/5.16.51 (Linux; U; Android 11) gzip", playerParams: "CgIQBg==", androidSdkVersion: 30),
-        ClientType.androidVR: Client(name: "ANDROID_VR", version: "1.60.19", screen: nil, apiKey: "", internalID: 28, userAgent: "com.google.android.apps.youtube.vr.oculus/1.60.19 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip"),
-        ClientType.webEmbed: Client(name: "WEB_EMBEDDED_PLAYER", version: "1.20220731.00.00", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", internalID: 56, userAgent: "Mozilla/5.0"),
-        ClientType.webCreator: Client(name: "WEB_CREATOR", version: "1.20240723.03.00", screen: nil, apiKey: "", internalID: 62, userAgent: nil),
+        ClientType.androidVR: Client(name: "ANDROID_VR", version: "1.62.27", screen: nil, apiKey: "", internalID: 28, userAgent: "com.google.android.apps.youtube.vr.oculus/1.62.27 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip"),
+        ClientType.webEmbed: Client(name: "WEB_EMBEDDED_PLAYER", version: "1.20250310.01.00", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", internalID: 56, userAgent: "Mozilla/5.0"),
+        ClientType.webCreator: Client(name: "WEB_CREATOR", version: "1.20250312.03.01", screen: nil, apiKey: "", internalID: 62, userAgent: nil),
         ClientType.androidEmbed: Client(name: "ANDROID_EMBEDDED_PLAYER", version: "18.11.34", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", internalID: 3, userAgent: "com.google.android.youtube/18.11.34 (Linux; U; Android 11) gzip"),
-        ClientType.tv: Client(name: "TVHTML5", version: "7.20241201.18.00", screen: nil, apiKey: "", internalID: 7, userAgent: nil),
+        ClientType.tv: Client(name: "TVHTML5", version: "7.20250312.16.00", screen: nil, apiKey: "", internalID: 7, userAgent: nil),
         ClientType.tvEmbed: Client(name: "TVHTML5_SIMPLY_EMBEDDED_PLAYER", version: "2.0", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", internalID: 85, userAgent: "Mozilla/5.0"),
         ClientType.ios: Client(name: "IOS", version: "20.10.4", screen: nil, apiKey: "", internalID: 5, userAgent: "com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)", deviceModel: "iPhone16,2"),
         ClientType.iosMusic: Client(name: "IOS_MUSIC", version: "5.21", screen: nil, apiKey: "AIzaSyBAETezhkwP0ZWA02RsqT1zu78Fpt0bC_s", internalID: 26, userAgent: "com.google.ios.youtubemusic/5.21 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)", deviceModel: "iPhone14,3"),
         ClientType.mediaConnectFrontend: Client(name: "MEDIA_CONNECT_FRONTEND", version: "0.1", screen: nil, apiKey: "", internalID: 0, userAgent: nil),
-        ClientType.mWeb: Client(name: "MWEB", version: "2.20240726.01.00", screen: nil, apiKey: "", internalID: 2, userAgent: nil)
+        ClientType.mWeb: Client(name: "MWEB", version: "2.20250311.03.00", screen: nil, apiKey: "", internalID: 2, userAgent: nil)
     ]
     
     enum ClientType: String {
