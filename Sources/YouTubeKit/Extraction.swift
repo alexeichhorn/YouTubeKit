@@ -9,6 +9,42 @@ import Foundation
 import os.log
 
 @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
+enum PlayerJSVariant: String, CaseIterable {
+    case main = "player_ias.vflset/en_US/base.js"
+    case tce = "player_ias_tce.vflset/en_US/base.js"
+    case es5 = "player_es5.vflset/en_US/base.js"
+    case es6 = "player_es6.vflset/en_US/base.js"
+    case tv = "tv-player-ias.vflset/tv-player-ias.js"
+    case tvEs6 = "tv-player-es6.vflset/tv-player-es6.js"
+    case phone = "player-plasma-ias-phone-en_US.vflset/base.js"
+    case tablet = "player-plasma-ias-tablet-en_US.vflset/base.js"
+    
+    static let fallbackOrder: [PlayerJSVariant] = [.main, .tce, .phone, .tv]
+    
+    var pattern: String {
+        switch self {
+        case .main: return "player_ias\\.vflset"
+        case .tce: return "player_ias_tce\\.vflset"
+        case .es5: return "player_es5\\.vflset"
+        case .es6: return "player_es6\\.vflset"
+        case .tv: return "tv-player-ias\\.vflset"
+        case .tvEs6: return "tv-player-es6\\.vflset"
+        case .phone: return "player-plasma-ias-phone"
+        case .tablet: return "player-plasma-ias-tablet"
+        }
+    }
+    
+    static func detectVariant(from path: String) -> PlayerJSVariant? {
+        for variant in PlayerJSVariant.allCases {
+            if path.contains(variant.pattern) {
+                return variant
+            }
+        }
+        return nil
+    }
+}
+
+@available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
 class Extraction {
     
     private static let log = OSLog(Extraction.self)
@@ -25,25 +61,51 @@ class Extraction {
     
     
     /// Get the base JavaScript url
-    class func jsURL(html: String) throws -> String {
-        let baseURL = try (try? getYTPlayerConfig(html: html).assets?.js)
-                           ?? (try getYTPlayerJS(html: html))
+    class func jsURL(html: String, variant: PlayerJSVariant? = nil) throws -> String {
+        let (baseURL, detectedVariant) = try (try? getYTPlayerConfigWithVariant(html: html))
+                                              ?? (try getYTPlayerJSWithVariant(html: html))
+        
+        // If a specific variant is requested and doesn't match detected, try to use the requested one
+        if let requestedVariant = variant, requestedVariant != detectedVariant {
+            // Extract player ID from path and construct URL for requested variant
+            if let playerIDMatch = NSRegularExpression(#"/s/player/([\w\d]+)/"#).firstMatch(in: baseURL, group: 1) {
+                let playerID = playerIDMatch.content
+                return "https://youtube.com/s/player/\(playerID)/\(requestedVariant.rawValue)"
+            }
+        }
+        
         return "https://youtube.com" + baseURL
     }
     
-    /// Get the YouTube player base JavaScript path.
-    class func getYTPlayerJS(html: String) throws -> String {
+    /// Get the YouTube player base JavaScript path with variant detection.
+    class func getYTPlayerJSWithVariant(html: String) throws -> (String, PlayerJSVariant?) {
         let jsURLPatterns = [
-            NSRegularExpression(#"(/s/player/[\w\d]+/[\w\d_/.]+/base\.js)"#)
+            NSRegularExpression(#"(/s/player/[\w\d]+/[\w\d_/.]+\.js)"#)
         ]
         
         for pattern in jsURLPatterns {
             if let match = pattern.firstMatch(in: html, group: 1) {
-                return match.content
+                let path = match.content
+                let variant = PlayerJSVariant.detectVariant(from: path)
+                return (path, variant)
             }
         }
         
         throw YouTubeKitError.regexMatchError
+    }
+    
+    /// Get the YouTube player base JavaScript path (legacy method for compatibility).
+    class func getYTPlayerJS(html: String) throws -> String {
+        return try getYTPlayerJSWithVariant(html: html).0
+    }
+    
+    private class func getYTPlayerConfigWithVariant(html: String) throws -> (String, PlayerJSVariant?) {
+        let config = try getYTPlayerConfig(html: html)
+        if let js = config.assets?.js {
+            let variant = PlayerJSVariant.detectVariant(from: js)
+            return (js, variant)
+        }
+        throw YouTubeKitError.extractError
     }
     
     struct PlayerConfig: Decodable {

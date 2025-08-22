@@ -13,6 +13,7 @@ public class YouTube {
     
     private var _js: String?
     private var _jsURL: URL?
+    private var _currentVariant: PlayerJSVariant?
     
 #if swift(>=5.10)
     nonisolated(unsafe) private static var __js: String? // caches js between calls
@@ -161,38 +162,63 @@ public class YouTube {
         }
     }
     
+    func jsURL(variant: PlayerJSVariant? = nil) async throws -> URL {
+        // If we have a cached URL and no specific variant requested, return it
+        if let cached = _jsURL, variant == nil {
+            return cached
+        }
+        
+        // If a specific variant is requested or we don't have a cached URL
+        let html = try await ageRestricted ? embedHTML : watchHTML
+        let url = try URL(string: Extraction.jsURL(html: html, variant: variant))!
+        
+        // Cache the URL if it's the default request
+        if variant == nil {
+            _jsURL = url
+        }
+        
+        return url
+    }
+    
     var jsURL: URL {
         get async throws {
-            if let cached = _jsURL {
-                return cached
-            }
-            
-            if try await ageRestricted {
-                _jsURL = try await URL(string: Extraction.jsURL(html: embedHTML))!
-            } else {
-                _jsURL = try await URL(string: Extraction.jsURL(html: watchHTML))!
-            }
-            return _jsURL!
+            return try await jsURL(variant: nil)
         }
     }
     
-    var js: String {
-        get async throws {
+    func js(variant: PlayerJSVariant? = nil) async throws -> String {
+        let jsURL = try await jsURL(variant: variant)
+        
+        // Check if we have this JS cached (when no variant specified)
+        if variant == nil {
             if let cached = _js {
                 return cached
             }
             
-            let jsURL = try await jsURL
-            
-            if YouTube.__jsURL != jsURL {
-                let (data, _) = try await URLSession.shared.data(from: jsURL)
-                _js = String(data: data, encoding: .utf8) ?? ""
-                YouTube.__js = _js
-                YouTube.__jsURL = jsURL
-            } else {
+            if YouTube.__jsURL == jsURL {
                 _js = YouTube.__js
+                return _js!
             }
-            return _js!
+        }
+        
+        // Download the JS
+        let (data, _) = try await URLSession.shared.data(from: jsURL)
+        let jsContent = String(data: data, encoding: .utf8) ?? ""
+        
+        // Cache if it's the default variant
+        if variant == nil {
+            _js = jsContent
+            YouTube.__js = _js
+            YouTube.__jsURL = jsURL
+            _currentVariant = PlayerJSVariant.detectVariant(from: jsURL.absoluteString)
+        }
+        
+        return jsContent
+    }
+    
+    var js: String {
+        get async throws {
+            return try await js(variant: nil)
         }
     }
 
@@ -241,15 +267,62 @@ public class YouTube {
                         
                         var streamManifest = Extraction.applyDescrambler(streamData: streamingData)
                         
+                        // Try to apply signature with fallback to different JS variants
+                        var signatureApplied = false
+                        var lastError: Error?
+                        
+                        // First try with the default/cached variant
                         do {
                             try await Extraction.applySignature(streamManifest: &streamManifest, videoInfo: videoInfo, js: js)
+                            signatureApplied = true
                         } catch {
-                            // to force an update to the js file, we clear the cache and retry
+                            os_log("Signature extraction failed with default variant, trying fallbacks", log: log, type: .debug)
+                            lastError = error
+                        }
+                        
+                        // If failed, try fallback variants
+                        if !signatureApplied {
+                            for variant in PlayerJSVariant.fallbackOrder {
+                                // Skip if we already tried this variant
+                                if variant == _currentVariant {
+                                    continue
+                                }
+                                
+                                do {
+                                    os_log("Trying variant: %{public}@", log: log, type: .debug, variant.rawValue)
+                                    let variantJS = try await self.js(variant: variant)
+                                    try await Extraction.applySignature(streamManifest: &streamManifest, videoInfo: videoInfo, js: variantJS)
+                                    
+                                    // If successful, update our cached variant
+                                    os_log("Signature extraction succeeded with variant: %{public}@", log: log, type: .info, variant.rawValue)
+                                    _currentVariant = variant
+                                    _js = variantJS
+                                    _jsURL = try await self.jsURL(variant: variant)
+                                    signatureApplied = true
+                                    break
+                                } catch {
+                                    os_log("Variant %{public}@ failed: %{public}@", log: log, type: .debug, variant.rawValue, error.localizedDescription)
+                                    lastError = error
+                                    continue
+                                }
+                            }
+                        }
+                        
+                        // If all variants failed, clear cache and retry with default
+                        if !signatureApplied {
+                            os_log("All variants failed, clearing cache and retrying", log: log, type: .debug)
                             _js = nil
                             _jsURL = nil
+                            _currentVariant = nil
                             YouTube.__js = nil
                             YouTube.__jsURL = nil
-                            try await Extraction.applySignature(streamManifest: &streamManifest, videoInfo: videoInfo, js: js)
+                            
+                            do {
+                                try await Extraction.applySignature(streamManifest: &streamManifest, videoInfo: videoInfo, js: js)
+                            } catch {
+                                // If still failing, throw the last error
+                                throw lastError ?? error
+                            }
                         }
                         
                         // filter out dubbed audio tracks
