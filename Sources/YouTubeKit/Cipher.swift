@@ -12,6 +12,16 @@ import JavaScriptCore
 import os.log
 
 @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
+/// Handles YouTube signature deciphering and throttling parameter calculation.
+///
+/// This class is responsible for:
+/// 1. Extracting and decoding the signature transformation functions from YouTube's JavaScript
+/// 2. Applying these transformations to decipher video signatures
+/// 3. Calculating the 'n' parameter to prevent throttling
+///
+/// The implementation has been updated to dynamically detect the global variable used for
+/// signature algorithms, based on the fix from YouTube.js PR #953, which improves compatibility
+/// with YouTube's frequently changing obfuscation techniques.
 class Cipher {
     
     let js: String
@@ -19,9 +29,11 @@ class Cipher {
     private let transformPlan: [(func: JSFunction, param: Int)]
     private let transformMap: [String: JSFunction]
     
-    private let jsFuncPatterns =  [
+    private let jsFuncPatterns = [
         NSRegularExpression(#"\w+\.(\w+)\(\w,(\d+)\)"#),
-        NSRegularExpression(#"\w+\[(\"\w+\")\]\(\w,(\d+)\)"#)
+        NSRegularExpression(#"\w+\[(\"\w+\")\]\(\w,(\d+)\)"#),
+        NSRegularExpression(#"function\(\w\)\{[\w=.]*;(.*);"#),
+        NSRegularExpression(#"\b([a-zA-Z0-9_$]+)\s*=\s*function\(\s*([a-zA-Z0-9_$]+)\s*\)"#)
     ]
     
     private let nParameterFunction: String
@@ -30,25 +42,28 @@ class Cipher {
     
     private static let log = OSLog(Cipher.self)
     
+    /// Initializes the Cipher with YouTube player JavaScript.
+    /// 
+    /// This implementation dynamically detects the global variable used for signature algorithms
+    /// based on the fix from YouTube.js PR #953. Instead of using a hardcoded variable name ("DE"),
+    /// it now attempts to extract the variable name from the JavaScript code, falling back to "DE"
+    /// only if extraction fails.
+    ///
+    /// - Parameter js: The JavaScript content from YouTube player
+    /// - Throws: YouTubeKitError if parsing fails
     init(js: String) throws {
         self.js = js
+        // Extract the global variable used for signature algorithm
+        let globalVariable = Extraction.extractGlobalVariable(js: js) ?? "DE"
+        os_log("Using global variable: %{public}@", log: Cipher.log, type: .debug, globalVariable)
         
-        /*let rawTransformPlan = try Cipher.getRawTransformPlan(js: js)
-
-        let varRegex = NSRegularExpression(#"^\$*\w+\W"#)
-        guard let varMatch = varRegex.firstMatch(in: rawTransformPlan[0], group: 0) else {
-            throw YouTubeKitError.regexMatchError
-        }
-        var variable = varMatch.content
-        _ = variable.popLast()
-        
-        self.transformMap = try Cipher.getTransformMap(js: js, variable: variable)
-        self.transformPlan = try Cipher.getDecodedTransformPlan(rawPlan: rawTransformPlan, variable: variable, transformMap: transformMap)*/
-        // -> temporarily disabled (as mostly unused)
-        self.transformMap = [:]
-        self.transformPlan = []
-        
-        self.nParameterFunction = try Cipher.getThrottlingFunctionCode(js: js) //try Cipher.getNParameterFunction(js: js)
+        // Implement transformPlan and transformMap logic based on TypeScript fixes
+        let transformObject = try Cipher.getTransformObject(js: js, variable: globalVariable)
+        self.transformMap = try Cipher.getTransformMap(js: js, variable: globalVariable)
+        let rawPlan = try Cipher.getRawTransformPlan(js: js)
+        self.transformPlan = try Cipher.getDecodedTransformPlan(rawPlan: rawPlan, variable: globalVariable, transformMap: transformMap)
+        // Extract the n parameter function code (throttling)
+        self.nParameterFunction = try Cipher.getThrottlingFunctionCode(js: js)
     }
     
     /// Converts n to the correct value to prevent throttling.
@@ -56,26 +71,19 @@ class Cipher {
         if let newN = calculatedN[initialN] {
             return newN
         }
-        
 #if canImport(JavaScriptCore)
         guard let context = JSContext() else {
             os_log("failed to create JSContext", log: Cipher.log, type: .error)
             return ""
         }
-        
         context.evaluateScript(nParameterFunction)
-        
         let function = context.objectForKeyedSubscript("processNSignature")
         let result = function?.call(withArguments: [initialN])
-        
         guard let result, result.isString, let newN = result.toString() else {
             os_log("failed to calculate n", log: Cipher.log, type: .error)
             return ""
         }
-        
-        // cache the result
         calculatedN[initialN] = newN
-        
         return newN
 #else
         return ""
@@ -85,12 +93,9 @@ class Cipher {
     /// Decipher the signature
     func getSignature(cipheredSignature: String) -> String? {
         var signature = Array(cipheredSignature)
-        
         guard !transformPlan.isEmpty else {
             return nil
         }
-        
-        // apply transform functions
         for (function, param) in transformPlan {
             switch function {
             case .reverse:
@@ -101,7 +106,6 @@ class Cipher {
                 (signature[0], signature[param % signature.count]) = (signature[param % signature.count], signature[0])
             }
         }
-        
         return String(signature)
     }
     

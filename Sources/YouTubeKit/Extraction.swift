@@ -58,8 +58,9 @@ class Extraction {
     class func getYTPlayerConfig(html: String) throws -> PlayerConfig {
         os_log("finding initial function name", log: log, type: .debug)
         let configPatterns = [
-            NSRegularExpression(#"ytplayer\.config\s*=\s*"#),
-            NSRegularExpression(#"ytInitialPlayerResponse\s*=\s*"#)
+            // Outdated Regex
+            // NSRegularExpression(#"ytplayer\.config\s*=\s*(\{)"#),
+            NSRegularExpression(#"ytInitialPlayerResponse\s*=\s*(\{)"#)
         ]
         
         for pattern in configPatterns {
@@ -112,14 +113,58 @@ class Extraction {
         return (nil, [nil])
     }
     
-    /// Extracts the signature timestamp (sts) from javascript. 
+    /// Extracts the signature timestamp (sts) from javascript.
     /// Used to pass into InnerTube to tell API what sig/player is in use.
     /// - parameter js: The javascript contents of the watch page
     /// - returns: The signature timestamp (sts) or nil if not found
     class func extractSignatureTimestamp(fromJS js: String) -> Int? {
-        let pattern = NSRegularExpression(#"(?:signatureTimestamp|sts)\s*:\s*([0-9]{5})"#)
+        // Improved regex to match signatureTimestamp extraction as in TS
+        let pattern = NSRegularExpression(#"signatureTimestamp\s*:\s*(\d+)"#)
         if let match = pattern.firstMatch(in: js, group: 1) {
             return Int(match.content)
+        }
+        return nil
+    }
+
+    /// Extracts the global variable used for deciphering signatures from JS.
+    /// This implementation is based on the fix from YouTube.js PR #953 which uses a global variable
+    /// to find the signature algorithm instead of relying on hardcoded variable names.
+    /// YouTube.js PR #953 - https://github.com/LuanRT/YouTube.js/pull/953
+    ///
+    /// - Parameter js: The JavaScript content from YouTube player
+    /// - Returns: The name of the global variable used for signature deciphering, or nil if not found
+    class func extractGlobalVariable(js: String) -> String? {
+        // Try to match common variable patterns as in YouTube.js
+        let patterns = [
+            // Match variable declarations that contain signature-related code
+            NSRegularExpression(#"var (\w+)=\{[^}]+\}"#),
+            // Match function declarations that handle signature splitting
+            NSRegularExpression(#"function\((\w+)\)\{\w+=\w+\.split\(""\)"#),
+            // Match variables that might contain signature transformation functions
+            NSRegularExpression(#"var (\w+)=\{[\s\S]*?\};"#)
+        ]
+        
+        for pattern in patterns {
+            if let match = pattern.firstMatch(in: js, group: 1) {
+                os_log("Found global variable for signature algorithm: %{public}@", log: log, type: .debug, match.content)
+                return match.content
+            }
+        }
+        
+        // If no variable is found, the default "DE" will be used as fallback in Cipher.swift
+        os_log("Could not extract global variable for signature algorithm, using default", log: log, type: .debug)
+        return nil
+    }
+
+    /// Extracts the signature deciphering source code from JS.
+    class func extractSigSourceCode(js: String, globalVariable: String?) -> String? {
+        guard let globalVariable else { return nil }
+        // Try to extract the function body for signature deciphering
+        guard let pattern = try? NSRegularExpression(pattern: "function\\((\\w+)\\)\\{(\\w+=\\w+\\.split\\(\\\"\\\"\\)(.+?)\\.join\\(\\\"\\\"\\))\\}", options: []) else {
+            return nil
+        }
+        if let match = pattern.firstMatch(in: js, group: 2) {
+            return "function descramble_sig(sig) { var \(globalVariable) = {...}; \(match.content) } descramble_sig(sig);"
         }
         return nil
     }
