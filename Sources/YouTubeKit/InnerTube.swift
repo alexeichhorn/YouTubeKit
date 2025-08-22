@@ -78,7 +78,7 @@ class InnerTube {
     private let apiKey: String
     private let context: Context
     private let headers: [String: String]
-    private let playerParams: String
+    private let playerParams: String?
 
     private let ytcfg: Extraction.YtCfg
     private let signatureTimestamp: Int?
@@ -89,7 +89,7 @@ class InnerTube {
         self.context = defaultClients[client]!.context
         self.apiKey = defaultClients[client]!.apiKey
         self.headers = defaultClients[client]!.headers
-        self.playerParams = defaultClients[client]!.playerParams ?? "8AEB"
+        self.playerParams = defaultClients[client]!.playerParams
         self.signatureTimestamp = signatureTimestamp
         self.ytcfg = ytcfg
         self.useOAuth = useOAuth
@@ -239,7 +239,7 @@ class InnerTube {
     private struct PlayerRequest: Encodable {
         let context: Context
         let videoId: String
-        let params: String
+        let params: String?
         let playbackContext: PlaybackContext
         let contentCheckOk: Bool = true
         let racyCheckOk: Bool = true
