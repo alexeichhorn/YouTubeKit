@@ -17,14 +17,19 @@ class RemoteYouTubeClient {
     }
     
     func extractStreams(forVideoID videoID: String) async throws -> [RemoteStream] {
-        
+
         var urlComponents = URLComponents(url: serverURL.appendingPathComponent("v1"), resolvingAgainstBaseURL: false)!
         urlComponents.queryItems = [
             URLQueryItem(name: "videoID", value: videoID)
         ]
-        
-        let websocketRequest = URLRequest(url: urlComponents.url!)
-        
+
+        var websocketRequest = URLRequest(url: urlComponents.url!)
+
+        // Add app identity header if available
+        if let appIdentity = AppIdentity.getCurrent() {
+            websocketRequest.setValue(appIdentity.appID, forHTTPHeaderField: "X-AppID-v1")
+        }
+
         let task = URLSession.shared.webSocketTask(with: websocketRequest)
         task.resume()
         
