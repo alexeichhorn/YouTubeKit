@@ -33,22 +33,28 @@ class Cipher {
     init(js: String) throws {
         self.js = js
         
-        let rawTransformPlan = try Cipher.getRawTransformPlan(js: js)
-
-        let varRegex = NSRegularExpression(#"^\$*\w+\W"#)
-        guard let varMatch = varRegex.firstMatch(in: rawTransformPlan[0], group: 0) else {
-            throw YouTubeKitError.regexMatchError
-        }
-        var variable = varMatch.content
-        //_ = variable.popLast()  (maybe re-add)
-        
         let globalVar = try Cipher.interpretPlayerGlobalVar(js: js)
         
-        self.transformMap = try Cipher.getTransformMap(js: js, variable: variable)
-        self.transformPlan = try Cipher.getDecodedTransformPlan(rawPlan: rawTransformPlan, variable: variable, transformMap: transformMap, globalVar: globalVar)
-        // -> temporarily disabled (as mostly unused)
-//        self.transformMap = [:]
-//        self.transformPlan = []
+        do {
+            let rawTransformPlan = try Cipher.getRawTransformPlan(js: js)
+            
+            let varRegex = NSRegularExpression(#"^\$*\w+\W"#)
+            guard let varMatch = varRegex.firstMatch(in: rawTransformPlan[0], group: 0) else {
+                throw YouTubeKitError.regexMatchError
+            }
+            let variable = varMatch.content
+            //_ = variable.popLast()  (maybe re-add)
+            
+            let transformMap = try Cipher.getTransformMap(js: js, variable: variable)
+            let transformPlan = try Cipher.getDecodedTransformPlan(rawPlan: rawTransformPlan, variable: variable, transformMap: transformMap, globalVar: globalVar)
+            self.transformMap = transformMap
+            self.transformPlan = transformPlan
+        } catch let error {
+            // verbosely fail, but don't fail whole initialization
+            os_log("Failed to parse transform plan: %{public}@", log: Cipher.log, type: .error, error as CVarArg)
+            self.transformMap = [:]
+            self.transformPlan = []
+        }
         
         self.nParameterFunction = try Cipher.getThrottlingFunctionCode(js: js, globalVar: globalVar) //try Cipher.getNParameterFunction(js: js)
     }
