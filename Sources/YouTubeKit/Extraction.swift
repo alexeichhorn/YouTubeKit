@@ -365,9 +365,10 @@ class Extraction {
             if data.url == nil {
                 if let signatureCipher = data.signatureCipher {
                     let cipherURL = parseQueryString(signatureCipher)
-                    formats[i].url = cipherURL["url"]?.first
-                    formats[i].s = cipherURL["s"]?.first
-                    formats[i].sp = cipherURL["sp"]?.first // signature parameter name (e.g., "sig" or "signature")
+                    // URL-decode the values (they come percent-encoded from signatureCipher)
+                    formats[i].url = cipherURL["url"]?.first?.removingPercentEncoding ?? cipherURL["url"]?.first
+                    formats[i].s = cipherURL["s"]?.first?.removingPercentEncoding ?? cipherURL["s"]?.first
+                    formats[i].sp = cipherURL["sp"]?.first?.removingPercentEncoding ?? cipherURL["sp"]?.first
                 }
             }
         }
