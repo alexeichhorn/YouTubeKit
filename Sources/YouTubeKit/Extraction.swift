@@ -368,15 +368,17 @@ class Extraction {
                     
                     // apply "s" signature
                     if let cipheredSignature = stream.s {
-                        // Remove the stream from `streamManifest` for now, as signature extraction currently doesn't work most of time
-                        invalidStreamIndices.append(i)
-                        continue // Skip the rest of the code as we are removing this stream
-                        
-                        let signature = try cipher.value.getSignature(cipheredSignature: cipheredSignature)
-                        
+                        guard let signature = try cipher.value.getSignature(cipheredSignature: cipheredSignature) else {
+                            os_log("failed to decrypt signature for itag=%{public}i, removing stream", log: log, type: .error, stream.itag)
+                            invalidStreamIndices.append(i)
+                            continue
+                        }
+
                         os_log("finished descrambling signature for itag=%{public}i", log: log, type: .debug, stream.itag)
-                        
-                        urlComponents.queryItems?["sig"] = signature
+
+                        // Use sp parameter name from signatureCipher, default to "signature" if not present
+                        let paramName = stream.sp ?? "signature"
+                        urlComponents.queryItems?[paramName] = signature
                     }
                     
                 } else {
