@@ -33,22 +33,24 @@ class Cipher {
     init(js: String) throws {
         self.js = js
         
-        /*let rawTransformPlan = try Cipher.getRawTransformPlan(js: js)
+        let rawTransformPlan = try Cipher.getRawTransformPlan(js: js)
 
         let varRegex = NSRegularExpression(#"^\$*\w+\W"#)
         guard let varMatch = varRegex.firstMatch(in: rawTransformPlan[0], group: 0) else {
             throw YouTubeKitError.regexMatchError
         }
         var variable = varMatch.content
-        _ = variable.popLast()
+        //_ = variable.popLast()  (maybe re-add)
+        
+        let globalVar = try Cipher.interpretPlayerGlobalVar(js: js)
         
         self.transformMap = try Cipher.getTransformMap(js: js, variable: variable)
-        self.transformPlan = try Cipher.getDecodedTransformPlan(rawPlan: rawTransformPlan, variable: variable, transformMap: transformMap)*/
+        self.transformPlan = try Cipher.getDecodedTransformPlan(rawPlan: rawTransformPlan, variable: variable, transformMap: transformMap, globalVar: globalVar)
         // -> temporarily disabled (as mostly unused)
-        self.transformMap = [:]
-        self.transformPlan = []
+//        self.transformMap = [:]
+//        self.transformPlan = []
         
-        self.nParameterFunction = try Cipher.getThrottlingFunctionCode(js: js) //try Cipher.getNParameterFunction(js: js)
+        self.nParameterFunction = try Cipher.getThrottlingFunctionCode(js: js, globalVar: globalVar) //try Cipher.getNParameterFunction(js: js)
     }
     
     /// Converts n to the correct value to prevent throttling.
@@ -159,7 +161,7 @@ class Cipher {
     /// The "transform plan" is the functions that the ciphered signature is cycled through to obtain the actual signature.
     class func getRawTransformPlan(js: String) throws -> [String] {
         let name = try getInitialFunctionName(js: js)
-        let pattern = NSRegularExpression(NSRegularExpression.escapedPattern(for: name) + #"=function\(\w\)\{[a-z=\.\(\"\)]*;(.*);(?:.+)\}"#)
+        let pattern = NSRegularExpression(NSRegularExpression.escapedPattern(for: name) + #"=function\(\w\)\{[A-Za-z0-9=\.\(\"\)\[\]]*;(.*);(?:.+)\}"#)
         os_log("getting transform plan", log: log, type: .debug)
         if let match = pattern.firstMatch(in: js, group: 1) {
             return match.content.components(separatedBy: ";")
@@ -169,16 +171,32 @@ class Cipher {
     
     /// Transforms raw transform plan in to a decoded transform plan with functions and parameters
     /// - Note: returns empty array if transformation failed
-    class func getDecodedTransformPlan(rawPlan: [String], variable: String, transformMap: [String: JSFunction]) throws -> [(func: JSFunction, param: Int)] {
+    class private func getDecodedTransformPlan(rawPlan: [String], variable: String, transformMap: [String: JSFunction], globalVar: PlayerGlobalVar?) throws -> [(func: JSFunction, param: Int)] {
         let pattern = try NSRegularExpression(pattern: NSRegularExpression.escapedPattern(for: variable) + #"\.(.+)\(.+,(\d+)\)"#) // expecting e.g. "wP.Nl(a,65)"
+        let gPattern = try NSRegularExpression(pattern: NSRegularExpression.escapedPattern(for: variable) + #"\["# + NSRegularExpression.escapedPattern(for: globalVar?.name ?? "G") + #"\[(\d+)\]]\(.+,(\d+)\)"#) // expecting references to global var, e.g. "C$[G[58]](u,24)"
+        
+        func getFunctionNameAndParam(_ functionCall: String) -> (String, String)? {
+            if let (_, matchGroups) = pattern.allMatches(in: functionCall, includingGroups: [1, 2]).first,
+               let functionName = matchGroups[1]?.content,
+               let parameter = matchGroups[2]?.content {
+                return (functionName, parameter)
+            }
+            
+            if let globalVar,
+               let (_, matchGroups) = gPattern.allMatches(in: functionCall, includingGroups: [1, 2]).first,
+               let functionNameGlobalIndex = (matchGroups[1]?.content).flatMap({ Int($0) }),
+               let functionName = globalVar.globalList[safe: functionNameGlobalIndex],
+               let parameter = matchGroups[2]?.content {
+                return (functionName, parameter)
+            }
+            
+            return nil
+        }
         
         var result: [(func: JSFunction, param: Int)] = []
         
         for functionCall in rawPlan {
-            guard let (_, matchGroups) = pattern.allMatches(in: functionCall, includingGroups: [1, 2]).first,
-                  let functionName = matchGroups[1]?.content,
-                  let parameter = matchGroups[2]?.content
-            else {
+            guard let (functionName, parameter) = getFunctionNameAndParam(functionCall) else {
                 os_log("failed to decode function call %{public}@", log: log, type: .error, functionCall)
                 return []
             }
@@ -474,9 +492,7 @@ class Cipher {
     }
     
     /// Extract the raw code for the throttling function.
-    class func getThrottlingFunctionCode(js: String, functionName: String = "processNSignature") throws -> String {
-        
-        let globalVar = try interpretPlayerGlobalVar(js: js)
+    class private func getThrottlingFunctionCode(js: String, globalVar: PlayerGlobalVar?, functionName: String = "processNSignature") throws -> String {
         
         let name = try getThrottlingFunctionName(js: js, globalVar: globalVar)
         
@@ -522,12 +538,18 @@ class Cipher {
         let mapper = [
             // function(a){a.reverse()}
             (NSRegularExpression(#"\{\w\.reverse\(\)\}"#), JSFunction.reverse),
+            // function(u){u[G[43]]()} - reverse obfuscated (but obvious because of single input func)
+            (NSRegularExpression(#"\{\w\[.+\]\(\)\}"#), .reverse),
             // function(a,b){a.splice(0,b)}
             (NSRegularExpression(#"\{\w\.splice\(0,\w\)\}"#), .splice),
+            // function(u,l){u[G[6]](0,l)} - splice is obfuscated (but obvious with (0, x) input
+            (NSRegularExpression(#"\{(\w\[.+\])\(0,\w\)\}"#), .splice),
             // function(a,b){var c=a[0];a[0]=a[b%a.length];a[b]=c}
             (NSRegularExpression(#"\{var\s\w=\w\[0\];\w\[0\]=\w\[\w\%\w.length\];\w\[\w\]=\w\}"#), .swap),
             // function(a,b){var c=a[0];a[0]=a[b%a.length];a[b%a.length]=c}
-            (NSRegularExpression(#"\{var\s\w=\w\[0\];\w\[0\]=\w\[\w\%\w.length\];\w\[\w\%\w.length\]=\w\}"#), .swap)
+            (NSRegularExpression(#"\{var\s\w=\w\[0\];\w\[0\]=\w\[\w\%\w.length\];\w\[\w\%\w.length\]=\w\}"#), .swap),
+            // function(u,l){var e=u[0];u[0]=u[l%u[G[3]]];u[l%u[G[3]]]=e}
+            (NSRegularExpression(#"\{var\s\w=\w\[0\];\w\[0\]=\w\[\w\%\w\[.+\]\];\w\[\w\%\w\[.+\]\]=\w\}"#), .swap),
         ]
         
         for (pattern, fn) in mapper {
