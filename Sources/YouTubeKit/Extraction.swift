@@ -24,10 +24,32 @@ class Extraction {
     }
     
     
+    /// Known working player ID and STS (from yt-dlp fix for broken YouTube players)
+    /// See: https://github.com/yt-dlp/yt-dlp/pull/14398
+    /// Format: STS@PLAYER_ID (20348@0004de42)
+    /// These MUST match - you cannot mix player ID with different STS
+    /// Update this when it stops working by checking NSigTests.swift
+    private static let PLAYER_ID_OVERRIDE: String? = "0004de42"
+    private static let PLAYER_STS_OVERRIDE: Int? = 20348
+
     /// Get the base JavaScript url
     class func jsURL(html: String) throws -> String {
         let baseURL = try (try? getYTPlayerConfig(html: html).assets?.js)
                            ?? (try getYTPlayerJS(html: html))
+
+        // Replace potentially broken player ID with known working one
+        // Format: /s/player/{PLAYER_ID}/{VARIANT_PATH}
+        let playerIDPattern = NSRegularExpression(#"(/s/player/)([a-zA-Z0-9_]+)(/.*)"#)
+        if let PLAYER_ID_OVERRIDE,
+           let (_, groupMatches) = playerIDPattern.firstMatch(in: baseURL, includingGroups: [1, 2, 3]),
+           let prefix = groupMatches[1]?.content,
+           let _ = groupMatches[2]?.content,
+           let suffix = groupMatches[3]?.content {
+            let fixedURL = prefix + PLAYER_ID_OVERRIDE + suffix
+            return "https://youtube.com" + fixedURL
+        }
+
+        // Fallback to extracted URL if pattern doesn't match (shouldn't happen)
         return "https://youtube.com" + baseURL
     }
     
@@ -112,11 +134,16 @@ class Extraction {
         return (nil, [nil])
     }
     
-    /// Extracts the signature timestamp (sts) from javascript. 
+    /// Extracts the signature timestamp (sts) from javascript.
     /// Used to pass into InnerTube to tell API what sig/player is in use.
     /// - parameter js: The javascript contents of the watch page
     /// - returns: The signature timestamp (sts) or nil if not found
     class func extractSignatureTimestamp(fromJS js: String) -> Int? {
+        // Return hardcoded STS that matches overridden player
+        if let PLAYER_STS_OVERRIDE {
+            return PLAYER_STS_OVERRIDE
+        }
+
         let pattern = NSRegularExpression(#"(?:signatureTimestamp|sts)\s*:\s*([0-9]{5})"#)
         if let match = pattern.firstMatch(in: js, group: 1) {
             return Int(match.content)
@@ -340,6 +367,7 @@ class Extraction {
                     let cipherURL = parseQueryString(signatureCipher)
                     formats[i].url = cipherURL["url"]?.first
                     formats[i].s = cipherURL["s"]?.first
+                    formats[i].sp = cipherURL["sp"]?.first // signature parameter name (e.g., "sig" or "signature")
                 }
             }
         }
