@@ -24,13 +24,9 @@ class Extraction {
     }
     
     
-    /// Known working player ID and STS (from yt-dlp fix for broken YouTube players)
-    /// See: https://github.com/yt-dlp/yt-dlp/pull/14398
-    /// Format: STS@PLAYER_ID (20348@0004de42)
-    /// These MUST match - you cannot mix player ID with different STS
-    /// Update this when it stops working by checking NSigTests.swift
-    private static let PLAYER_ID_OVERRIDE: String? = "0004de42"
-    private static let PLAYER_STS_OVERRIDE: Int? = 20348
+    /// Allows to override player id in case we have a (currently) unsolvable in the future
+    private static let PLAYER_ID_OVERRIDE: String? = nil
+    private static let PLAYER_STS_OVERRIDE: Int? = nil
 
     /// Get the base JavaScript url
     class func jsURL(html: String) throws -> String {
