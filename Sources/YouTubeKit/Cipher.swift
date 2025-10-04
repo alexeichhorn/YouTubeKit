@@ -42,8 +42,8 @@ class Cipher {
             guard let varMatch = varRegex.firstMatch(in: rawTransformPlan[0], group: 0) else {
                 throw YouTubeKitError.regexMatchError
             }
-            let variable = varMatch.content
-            //_ = variable.popLast()  (maybe re-add)
+            var variable = varMatch.content
+            variable = variable.stripTrailing(".[") // remove characters (like dots) from e.g. "nP."
             
             let transformMap = try Cipher.getTransformMap(js: js, variable: variable)
             let transformPlan = try Cipher.getDecodedTransformPlan(rawPlan: rawTransformPlan, variable: variable, transformMap: transformMap, globalVar: globalVar)

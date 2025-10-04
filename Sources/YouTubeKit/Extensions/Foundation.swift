@@ -43,6 +43,15 @@ extension String {
         return result
     }
     
+    func stripTrailing(_ characters: String) -> String {
+        var result = self
+        let characterSet = CharacterSet(charactersIn: characters)
+        while let last = result.last, characterSet.contains(last.unicodeScalars.first!) {
+            result.removeLast()
+        }
+        return result
+    }
+    
     
     // - MARK: Escaping
     
