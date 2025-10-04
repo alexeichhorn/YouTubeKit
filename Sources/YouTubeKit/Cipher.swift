@@ -51,7 +51,7 @@ class Cipher {
             self.transformPlan = transformPlan
         } catch let error {
             // verbosely fail, but don't fail whole initialization
-            os_log("Failed to parse transform plan: %{public}@", log: Cipher.log, type: .error, error as CVarArg)
+            os_log("Failed to parse transform plan (non-fatal): %{public}@", log: Cipher.log, type: .error, error as CVarArg)
             self.transformMap = [:]
             self.transformPlan = []
         }
