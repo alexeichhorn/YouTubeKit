@@ -13,7 +13,11 @@ class SignatureSolver {
     private let vm = JSVirtualMachine()
     private let ctx: JSContext
     
-    init() throws {
+    private let playerJS: String
+    
+    init(js: String) throws {
+        self.playerJS = js
+        
         guard let context = JSContext(virtualMachine: vm) else {
             throw NSError(domain: "JSC", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to make JSContext"])
         }
@@ -61,7 +65,7 @@ class SignatureSolver {
         try evalResource("yt_ejs_helper", "js")
     }
     
-    struct Request: Codable {
+    private struct Request: Codable {
         let type: RequestType
         let challenges: [String]
         
@@ -70,7 +74,7 @@ class SignatureSolver {
         }
     }
     
-    struct Input: Codable {
+    private struct Input: Codable {
         let type: PlayerType
         let player: String? // raw player JS if type == .player
         let preprocessed_player: String? // otherwise
@@ -83,9 +87,9 @@ class SignatureSolver {
         }
     }
     
-    struct Response: Codable {
+    private struct Response: Codable {
         struct Item: Codable {
-            let type: String
+            let type: Request.RequestType
             let data: [String: String]?
             let error: String?
         }
@@ -94,7 +98,7 @@ class SignatureSolver {
         let preprocessed_player: String?
     }
     
-    func solve(with input: Input) throws -> Response {
+    private func solve(with input: Input) throws -> Response {
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let json = try String(data: encoder.encode(input), encoding: .utf8)!
@@ -123,6 +127,58 @@ class SignatureSolver {
                 NSLocalizedFailureReasonErrorKey: error.localizedDescription
             ])
         }
+    }
+    
+    // MARK: - Public
+    
+    struct SolveRequest {
+        var nInputs: [String]
+        var sigInputs: [String]
+    }
+    
+    struct SolveResponse {
+        let nMap: [String: String]
+        let sigMap: [String: String]
+    }
+    
+    func batchSolve(request: SolveRequest) throws -> SolveResponse {
+
+        let input = Input(
+            type: .player,
+            player: self.playerJS,
+            preprocessed_player: nil,
+            requests: [
+                Request(type: .n, challenges: request.nInputs),
+                Request(type: .sig, challenges: request.sigInputs)
+            ],
+            output_preprocessed: false
+        )
+
+        let response = try solve(with: input)
+
+        var nMap: [String: String] = [:]
+        var sigMap: [String: String] = [:]
+
+        for item in response.responses {
+            // Check for errors
+            if let error = item.error {
+                throw NSError(domain: "SignatureSolver", code: 4, userInfo: [
+                    NSLocalizedDescriptionKey: "Solver error for type \(item.type): \(error)"
+                ])
+            }
+
+            // Process data
+            if let data = item.data {
+                switch item.type {
+                case .n:
+                    nMap.merge(data) { _, new in new }
+                case .sig:
+                    sigMap.merge(data) { _, new in new }
+                }
+            }
+        }
+
+        return SolveResponse(nMap: nMap, sigMap: sigMap)
     }
 }
 
