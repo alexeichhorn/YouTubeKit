@@ -89,9 +89,14 @@ class SignatureSolver {
     
     private struct Response: Codable {
         struct Item: Codable {
-            let type: Request.RequestType
+            let type: ItemType
             let data: [String: String]?
             let error: String?
+            
+            enum ItemType: String, Codable {
+                case result
+                case error
+            }
         }
         let type: String
         let responses: [Item]
@@ -143,14 +148,16 @@ class SignatureSolver {
     
     func batchSolve(request: SolveRequest) throws -> SolveResponse {
 
+        let requests = [
+            Request(type: .n, challenges: request.nInputs),
+            Request(type: .sig, challenges: request.sigInputs)
+        ]
+
         let input = Input(
             type: .player,
             player: self.playerJS,
             preprocessed_player: nil,
-            requests: [
-                Request(type: .n, challenges: request.nInputs),
-                Request(type: .sig, challenges: request.sigInputs)
-            ],
+            requests: requests,
             output_preprocessed: false
         )
 
@@ -159,21 +166,23 @@ class SignatureSolver {
         var nMap: [String: String] = [:]
         var sigMap: [String: String] = [:]
 
-        for item in response.responses {
-            // Check for errors
-            if let error = item.error {
-                throw NSError(domain: "SignatureSolver", code: 4, userInfo: [
-                    NSLocalizedDescriptionKey: "Solver error for type \(item.type): \(error)"
-                ])
-            }
-
-            // Process data
-            if let data = item.data {
-                switch item.type {
-                case .n:
-                    nMap.merge(data) { _, new in new }
-                case .sig:
-                    sigMap.merge(data) { _, new in new }
+        // Responses come back in same order as requests
+        for (request, item) in zip(requests, response.responses) {
+            switch item.type {
+            case .error:
+                if let error = item.error {
+                    throw NSError(domain: "SignatureSolver", code: 4, userInfo: [
+                        NSLocalizedDescriptionKey: "Solver error for type \(request.type): \(error)"
+                    ])
+                }
+            case .result:
+                if let data = item.data {
+                    switch request.type {
+                    case .n:
+                        nMap.merge(data) { _, new in new }
+                    case .sig:
+                        sigMap.merge(data) { _, new in new }
+                    }
                 }
             }
         }
