@@ -13,9 +13,23 @@ struct NSigTests {
     
     struct NSigPlayerRequest: CustomTestStringConvertible {
         let playerURL: URL
-        let input: String
-        let output: String
-        
+        let pairs: [Pair]
+
+        struct Pair {
+            let input: String
+            let output: String
+        }
+
+        init(playerURL: URL, input: String, output: String) {
+            self.playerURL = playerURL
+            self.pairs = [Pair(input: input, output: output)]
+        }
+
+        init(playerURL: URL, pairs: [Pair]) {
+            self.playerURL = playerURL
+            self.pairs = pairs
+        }
+
         var testDescription: String {
             if #available(iOS 16.0, macOS 13.0, watchOS 9.0, tvOS 16.0, *) {
                 let regex = #/.+\/player\/(?<id>[a-zA-Z0-9_\/.-]+)\.js$/#
@@ -101,8 +115,10 @@ struct NSigTests {
     func nSigLegacyForPlayerURL(_ request: NSigPlayerRequest) async throws {
         let js = try await downloadJavascript(fromURL: request.playerURL)
         let cipher = try Cipher(js: js)
-        let calculatedN = try cipher.calculateN(initialN: request.input)
-        #expect(calculatedN == request.output)
+        for pair in request.pairs {
+            let calculatedN = try cipher.calculateN(initialN: pair.input)
+            #expect(calculatedN == pair.output)
+        }
     }
     
     
@@ -150,12 +166,25 @@ struct NSigTests {
         NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/fc2a56a5/player_ias.vflset/en_US/base.js")!, input: "qTKWg_Il804jd2kAC", output: "OtUAm2W6gyzJjB9u"),
         NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/fc2a56a5/tv-player-ias.vflset/tv-player-ias.js")!, input: "qTKWg_Il804jd2kAC", output: "OtUAm2W6gyzJjB9u"),
         NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/0004de42/player_ias.vflset/en_US/base.js")!, input: "v4gt0ELCwTyStf7", output: "1shFzRzNdZSddQ"),
+        NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/3d3ba064/player_ias_tce.vflset/en_US/base.js")!, pairs: [
+            NSigPlayerRequest.Pair(input: "ZdZIqFPQK-Ty8wId", output: "qmtUsIz04xxiNW"),
+            NSigPlayerRequest.Pair(input: "4GMrWHyKI5cEvhDO", output: "N9gmEX7YhKTSmw")
+        ]),
+        NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/5ec65609/player_ias_tce.vflset/en_US/base.js")!, input: "0eRGgQWJGfT5rFHFj", output: "4SvMpDQH-vBJCw"),
+        NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/6742b2b9/player_ias_tce.vflset/en_US/base.js")!, pairs: [
+            NSigPlayerRequest.Pair(input: "_HPB-7GFg1VTkn9u", output: "qUAsPryAO_ByYg"),
+            NSigPlayerRequest.Pair(input: "K1t_fcB6phzuq2SF", output: "Y7PcOt3VE62mog")
+        ]),
     ])
     func nSigForPlayerURL(_ request: NSigPlayerRequest) async throws {
         let js = try await downloadJavascript(fromURL: request.playerURL)
         let signatureSolver = try SignatureSolver(js: js)
-        let calculatedN = try signatureSolver.batchSolve(request: SignatureSolver.SolveRequest(nInputs: [request.input], sigInputs: [])).nMap[request.input]
-        #expect(calculatedN == request.output)
+        let inputs = request.pairs.map { $0.input }
+        let response = try signatureSolver.batchSolve(request: SignatureSolver.SolveRequest(nInputs: inputs, sigInputs: []))
+        for pair in request.pairs {
+            let calculatedN = try #require(response.nMap[pair.input])
+            #expect(calculatedN == pair.output)
+        }
     }
     
 }
