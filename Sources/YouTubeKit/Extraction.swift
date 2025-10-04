@@ -375,25 +375,52 @@ class Extraction {
     
     /// apply the decrypted signature to the stream manifest
     class func applySignature(streamManifest: inout [InnerTube.StreamingData.Format], videoInfo: InnerTube.VideoInfo, js: String) throws {
-        var cipher = ThrowingLazy(try Cipher(js: js))
-        
+        let solver = try SignatureSolver(js: js)
+
+        var sigInputs: [String] = []
+        var nInputs: [String] = []
+
+        // First pass: collect all inputs
+        for stream in streamManifest {
+            if let url = stream.url {
+                guard let urlComponents = URLComponents(string: url) else { continue }
+
+                let signatureFound = url.contains("signature") || (stream.s == nil && (url.contains("&sig=") || url.contains("&lsig=")))
+
+                if !signatureFound {
+                    if let cipheredSignature = stream.s {
+                        sigInputs.append(cipheredSignature)
+                    }
+                }
+
+                if let initialN = urlComponents.queryItems?["n"] {
+                    nInputs.append(initialN)
+                }
+            }
+        }
+
+        // Batch solve all signatures and n-parameters
+        let request = SignatureSolver.SolveRequest(nInputs: nInputs, sigInputs: sigInputs)
+        let response = try solver.batchSolve(request: request)
+
         var invalidStreamIndices = [Int]()
-        
+
+        // Second pass: apply results
         for (i, stream) in streamManifest.enumerated() {
             if let url = stream.url {
                 guard var urlComponents = URLComponents(string: url) else { continue } // TODO: fail differently
-                
+
                 if urlComponents.queryItems == nil {
                     urlComponents.queryItems = []
                 }
-                
+
                 let signatureFound = url.contains("signature") || (stream.s == nil && (url.contains("&sig=") || url.contains("&lsig=")))
-                
+
                 if !signatureFound {
-                    
+
                     // apply "s" signature
                     if let cipheredSignature = stream.s {
-                        guard let signature = try cipher.value.getSignature(cipheredSignature: cipheredSignature) else {
+                        guard let signature = response.sigMap[cipheredSignature] else {
                             os_log("failed to decrypt signature for itag=%{public}i, removing stream", log: log, type: .error, stream.itag)
                             invalidStreamIndices.append(i)
                             continue
@@ -405,28 +432,31 @@ class Extraction {
                         let paramName = stream.sp ?? "signature"
                         urlComponents.queryItems?[paramName] = signature
                     }
-                    
+
                 } else {
                     // os_log("signature found, skip decipher", log: log, type: .debug)
                 }
-                
-                
+
+
                 // apply throttling "n" signature
                 if let initialN = urlComponents.queryItems?["n"] {
-                    let newN = try cipher.value.calculateN(initialN: initialN)
+                    guard let newN = response.nMap[initialN] else {
+                        invalidStreamIndices.append(i)
+                        continue
+                    }
                     urlComponents.queryItems?["n"] = newN
-                    
+
                     if newN.isEmpty {
                         invalidStreamIndices.append(i)
                     }
                 }
-                
-                
+
+
                 let url = urlComponents.url?.absoluteString ?? url
                 streamManifest[i].url = url
             }
         }
-        
+
         // Remove invalid streams
         for index in invalidStreamIndices.reversed() {
             streamManifest.remove(at: index)
