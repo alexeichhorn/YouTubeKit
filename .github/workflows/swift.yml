@@ -7,9 +7,9 @@ jobs:
   
     strategy:
       matrix:
-        swift: ["5.9", "5.10"]
+        swift: ["5.10", "6.0", "6.1"]
     
-    runs-on: macos-latest
+    runs-on: macos-14
 
     steps:
     - uses: swift-actions/setup-swift@v2

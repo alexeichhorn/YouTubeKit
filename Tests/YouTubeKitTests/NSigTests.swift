@@ -82,6 +82,7 @@ struct NSigTests {
         NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/59b252b9/player_ias.vflset/en_US/base.js")!, input: "D3XWVpYgwhLLKNK4AGX", output: "aZrQ1qWJ5yv5h"),
         NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/fc2a56a5/player_ias.vflset/en_US/base.js")!, input: "qTKWg_Il804jd2kAC", output: "OtUAm2W6gyzJjB9u"),
         NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/fc2a56a5/tv-player-ias.vflset/tv-player-ias.js")!, input: "qTKWg_Il804jd2kAC", output: "OtUAm2W6gyzJjB9u"),
+        NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/0004de42/player_ias.vflset/en_US/base.js")!, input: "v4gt0ELCwTyStf7", output: "1shFzRzNdZSddQ"),
     ])
     func nSigForPlayerURL(_ request: NSigPlayerRequest) async throws {
         let js = try await downloadJavascript(fromURL: request.playerURL)
