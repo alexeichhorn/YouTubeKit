@@ -101,6 +101,7 @@ public class YouTube {
             var request = URLRequest(url: extendedWatchURL)
             request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
             request.setValue("en-US,en", forHTTPHeaderField: "accept-language")
+            request.httpShouldHandleCookies = false
             let (data, _) = try await URLSession.shared.data(for: request)
             _watchHTML = String(data: data, encoding: .utf8) ?? ""
             return _watchHTML!
@@ -115,6 +116,7 @@ public class YouTube {
             var request = URLRequest(url: embedURL)
             request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
             request.setValue("en-US,en", forHTTPHeaderField: "accept-language")
+            request.httpShouldHandleCookies = false
             let (data, _) = try await URLSession.shared.data(for: request)
             _embedHTML = String(data: data, encoding: .utf8) ?? ""
             return _embedHTML!
