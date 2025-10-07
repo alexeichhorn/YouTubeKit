@@ -154,7 +154,7 @@ final class YouTubeKitTests: XCTestCase {
     }
     
     func testLivestreamHlsManifestUrl() async {
-        let youtube = YouTube(videoID: "jKHvbJe9c_Y")
+        let youtube = YouTube(videoID: "xRPjKQtRXR8")
         do {
             let livestreams = try await youtube.livestreams
             XCTAssert(livestreams.count > 0)
@@ -167,7 +167,7 @@ final class YouTubeKitTests: XCTestCase {
     }
     
     func testLivestreamHlsManifestUrlRemote() async {
-        let youtube = YouTube(videoID: "jKHvbJe9c_Y", methods: [.remote])
+        let youtube = YouTube(videoID: "xRPjKQtRXR8", methods: [.remote])
         do {
             let livestreams = try await youtube.livestreams
             XCTAssert(livestreams.count > 0)
