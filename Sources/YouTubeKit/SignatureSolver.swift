@@ -20,7 +20,7 @@ class SignatureSolver {
         self.playerJS = js
         
         guard let context = JSContext(virtualMachine: vm) else {
-            throw NSError(domain: "JSC", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to make JSContext"])
+            throw SignatureSolverError.contextCreationFailed
         }
         ctx = context
         ctx.exceptionHandler = { _, exc in
@@ -54,7 +54,7 @@ class SignatureSolver {
         // Load meriyah + astring UMD bundles from package resources
         func evalResource(_ name: String, _ ext: String) throws {
             guard let url = Bundle.module.url(forResource: name, withExtension: ext) else {
-                throw NSError(domain: "JSC", code: 3, userInfo: [NSLocalizedDescriptionKey: "Resource not found: \(name).\(ext)"])
+                throw SignatureSolverError.resourceNotFound(name: name, extension: ext)
             }
             let src = try String(contentsOf: url, encoding: .utf8)
             ctx.evaluateScript(src)
@@ -113,25 +113,22 @@ class SignatureSolver {
         ctx.setObject(json, forKeyedSubscript: "swiftInput" as NSString)
         let js = "JSON.stringify(jsc(JSON.parse(swiftInput)))"
         guard let result = ctx.evaluateScript(js) else {
-            throw NSError(domain: "JSC", code: 2, userInfo: [NSLocalizedDescriptionKey: "JavaScript evaluation returned null"])
+            throw SignatureSolverError.evaluationFailed
         }
         
         guard let out = result.toString() else {
-            throw NSError(domain: "JSC", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to convert result to string"])
+            throw SignatureSolverError.resultConversionFailed
         }
         
         guard let data = out.data(using: .utf8) else {
-            throw NSError(domain: "JSC", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to encode output as UTF-8"])
+            throw SignatureSolverError.encodingFailed
         }
         
         do {
             return try decoder.decode(Response.self, from: data)
         } catch {
             print("JSC output was: \(out)")
-            throw NSError(domain: "JSC", code: 3, userInfo: [
-                NSLocalizedDescriptionKey: "Failed to decode JSON response",
-                NSLocalizedFailureReasonErrorKey: error.localizedDescription
-            ])
+            throw SignatureSolverError.jsonDecodingFailed(error)
         }
     }
     
@@ -172,9 +169,7 @@ class SignatureSolver {
             switch item.type {
             case .error:
                 if let error = item.error {
-                    throw NSError(domain: "SignatureSolver", code: 4, userInfo: [
-                        NSLocalizedDescriptionKey: "Solver error for type \(request.type): \(error)"
-                    ])
+                    throw SignatureSolverError.solverError(requestType: request.type.rawValue, message: error)
                 }
             case .result:
                 if let data = item.data {
