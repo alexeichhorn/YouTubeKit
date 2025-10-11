@@ -6,6 +6,7 @@ jobs:
   build:
 
     strategy:
+      fail-fast: false
       matrix:
         swift: ["5.10", "6.0", "6.1"]
         platform:
