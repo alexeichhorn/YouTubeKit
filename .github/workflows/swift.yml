@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift: ["5.10", "6.0", "6.1"]
+        swift: ["5.10", "6.0", "6.1", "6.2"]
         platform:
           - { name: "iOS", destination: "generic/platform=iOS Simulator" }
           - { name: "macOS", destination: "platform=macOS" }
