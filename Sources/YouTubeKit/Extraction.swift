@@ -373,6 +373,7 @@ class Extraction {
         return formats
     }
     
+#if canImport(JavaScriptCore)
     /// apply the decrypted signature to the stream manifest
     class func applySignature(streamManifest: inout [InnerTube.StreamingData.Format], videoInfo: InnerTube.VideoInfo, js: String) throws {
         let solver = try SignatureSolver(js: js)
@@ -462,6 +463,7 @@ class Extraction {
             streamManifest.remove(at: index)
         }
     }
+#endif
     
     /// Filter out all audio streams that are not original language (i.e. dubbed)
     class func filterOutDubbedAudio(streamManifest: [InnerTube.StreamingData.Format]) -> [InnerTube.StreamingData.Format] {

@@ -5,6 +5,7 @@
 //  Created by Alexander Eichhorn on 12.06.2025.
 //
 
+#if canImport(JavaScriptCore)
 import Testing
 import Foundation
 @testable import YouTubeKit
@@ -189,3 +190,4 @@ struct NSigTests {
     
 }
 
+#endif

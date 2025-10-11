@@ -6,6 +6,7 @@
 //
 
 import Foundation
+#if canImport(JavaScriptCore)
 import JavaScriptCore
 
 class SignatureSolver {
@@ -190,4 +191,4 @@ class SignatureSolver {
         return SolveResponse(nMap: nMap, sigMap: sigMap)
     }
 }
-
+#endif
