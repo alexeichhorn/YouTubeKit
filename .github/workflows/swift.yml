@@ -23,7 +23,7 @@ jobs:
         swift-version: ${{ matrix.swift }}
     - uses: actions/checkout@v2
     - name: Build ${{ matrix.platform.name }}
-      run: xcodebuild build -scheme YouTubeKit -destination '${{ matrix.platform.destination }}'
+      run: xcodebuild build -scheme YouTubeKit -destination '${{ matrix.platform.destination }}' -skipTesting YouTubeKitTests
 
     # temporarily disabled because YouTube blocked GitHub actions url
     #- name: Run tests
