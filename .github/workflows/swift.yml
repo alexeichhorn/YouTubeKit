@@ -4,20 +4,27 @@ on: push
 
 jobs:
   build:
-  
+
     strategy:
+      fail-fast: false
       matrix:
         swift: ["5.10", "6.0", "6.1"]
-    
-    runs-on: macos-14
+        platform:
+          - { name: "iOS", destination: "generic/platform=iOS Simulator" }
+          - { name: "macOS", destination: "platform=macOS" }
+          - { name: "watchOS", destination: "generic/platform=watchOS Simulator" }
+          - { name: "tvOS", destination: "generic/platform=tvOS Simulator" }
+          - { name: "visionOS", destination: "generic/platform=visionOS Simulator" }
+
+    runs-on: macos-15
 
     steps:
     - uses: swift-actions/setup-swift@v2
       with:
         swift-version: ${{ matrix.swift }}
-    - uses: actions/checkout@v2
-    - name: Build
-      run: swift build -v
+    - uses: actions/checkout@v4
+    - name: Build ${{ matrix.platform.name }}
+      run: xcodebuild build -scheme YouTubeKit -destination '${{ matrix.platform.destination }}' -skipPackagePluginValidation
 
     # temporarily disabled because YouTube blocked GitHub actions url
     #- name: Run tests
