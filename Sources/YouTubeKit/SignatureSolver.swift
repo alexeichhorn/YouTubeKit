@@ -46,7 +46,7 @@ class SignatureSolver {
                 userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
             };
             const window = Object.assign(Object.create(null), globalThis);
-            window.location = new URL("https://www.youtube.com/watch?v=yt-dlp-wins");
+            window.location = new URL("https://www.youtube.com/watch?v=youtubekit-wins");
             const document = {};
             let self = globalThis;
         """#)
