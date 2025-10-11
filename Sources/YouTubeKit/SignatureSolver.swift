@@ -8,9 +8,12 @@
 import Foundation
 #if canImport(JavaScriptCore)
 import JavaScriptCore
+import os.log
 
 class SignatureSolver {
-    
+
+    private static let log = OSLog(SignatureSolver.self)
+
     private let vm = JSVirtualMachine()
     private let ctx: JSContext
     
@@ -24,7 +27,7 @@ class SignatureSolver {
         }
         ctx = context
         ctx.exceptionHandler = { _, exc in
-            print("JSC error:", exc?.toString() ?? "<unknown>")
+            os_log("JSC error: %{public}@", log: Self.log, type: .error, exc?.toString() ?? "<unknown>")
         }
         
         // Minimal DOM/env shims (matches `setupNodes`)
@@ -127,7 +130,7 @@ class SignatureSolver {
         do {
             return try decoder.decode(Response.self, from: data)
         } catch {
-            print("JSC output was: \(out)")
+            os_log("JSC output was: %{public}@", log: Self.log, type: .error, out)
             throw SignatureSolverError.jsonDecodingFailed(error)
         }
     }
