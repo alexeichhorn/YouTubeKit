@@ -4,11 +4,17 @@ on: push
 
 jobs:
   build:
-  
+
     strategy:
       matrix:
         swift: ["5.10", "6.0", "6.1"]
-    
+        platform:
+          - { name: "iOS", destination: "platform=iOS Simulator,name=iPhone 15" }
+          - { name: "macOS", destination: "platform=macOS" }
+          - { name: "watchOS", destination: "platform=watchOS Simulator,name=Apple Watch Series 9 (45mm)" }
+          - { name: "tvOS", destination: "platform=tvOS Simulator,name=Apple TV" }
+          - { name: "visionOS", destination: "platform=visionOS Simulator,name=Apple Vision Pro" }
+
     runs-on: macos-14
 
     steps:
@@ -16,8 +22,8 @@ jobs:
       with:
         swift-version: ${{ matrix.swift }}
     - uses: actions/checkout@v2
-    - name: Build
-      run: swift build -v
+    - name: Build ${{ matrix.platform.name }}
+      run: xcodebuild build -scheme YouTubeKit -destination '${{ matrix.platform.destination }}'
 
     # temporarily disabled because YouTube blocked GitHub actions url
     #- name: Run tests
