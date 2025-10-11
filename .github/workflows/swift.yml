@@ -16,7 +16,7 @@ jobs:
           - { name: "tvOS", destination: "generic/platform=tvOS Simulator" }
           - { name: "visionOS", destination: "generic/platform=visionOS Simulator" }
 
-    runs-on: macos-14
+    runs-on: macos-15
 
     steps:
     - uses: swift-actions/setup-swift@v2
