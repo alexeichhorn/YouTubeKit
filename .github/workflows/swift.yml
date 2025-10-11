@@ -22,7 +22,7 @@ jobs:
     - uses: swift-actions/setup-swift@v2
       with:
         swift-version: ${{ matrix.swift }}
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Build ${{ matrix.platform.name }}
       run: xcodebuild build -scheme YouTubeKit -destination '${{ matrix.platform.destination }}' -skipPackagePluginValidation
 
