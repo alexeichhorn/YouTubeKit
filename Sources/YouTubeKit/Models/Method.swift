@@ -15,7 +15,7 @@ extension YouTube {
         case remote(serverURL: URL)
         
         public static var remote: ExtractionMethod {
-            return .remote(serverURL: URL(string: "https://youtubekit-remote.losjet.com")!)
+            return .remote(serverURL: URL(string: "https://remote-production.youtubekit.dev")!)
         }
     }
     
