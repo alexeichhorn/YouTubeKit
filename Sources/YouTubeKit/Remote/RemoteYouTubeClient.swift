@@ -58,6 +58,7 @@ class RemoteYouTubeClient {
                 if let body = body {
                     request.httpBody = body
                 }
+                request.httpShouldHandleCookies = false
                 return request
             }
         }
