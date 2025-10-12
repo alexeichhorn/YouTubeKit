@@ -72,22 +72,26 @@ public class YouTube {
     
     private let log = OSLog(YouTube.self)
     
-    /// - parameter methods: Methods used to extract streams from the video - ordered by priority (Default: only local)
-    public init(videoID: String, proxies: [String: URL] = [:], useOAuth: Bool = false, allowOAuthCache: Bool = false, methods: [ExtractionMethod] = [.local]) {
+    /// - parameter methods: Methods used to extract streams from the video - ordered by priority (Default: `local` on iOS, macOS, tvOS, visionOS; `remote` on watchOS)
+    public init(videoID: String, proxies: [String: URL] = [:], useOAuth: Bool = false, allowOAuthCache: Bool = false, methods: [ExtractionMethod] = .default) {
         self.videoID = videoID
         self.useOAuth = useOAuth
         self.allowOAuthCache = allowOAuthCache
         // TODO: install proxies if needed
         
         if methods.isEmpty {
+#if canImport(JavaScriptCore)
             self.methods = [.local]
+#else
+            self.methods = [.remote]
+#endif
         } else {
             self.methods = methods.removeDuplicates()
         }
     }
     
-    /// - parameter methods: Methods used to extract streams from the video - ordered by priority (Default: only local)
-    public convenience init(url: URL, proxies: [String: URL] = [:], useOAuth: Bool = false, allowOAuthCache: Bool = false, methods: [ExtractionMethod] = [.local]) {
+    /// - parameter methods: Methods used to extract streams from the video - ordered by priority (Default: `local` on iOS, macOS, tvOS, visionOS; `remote` on watchOS)
+    public convenience init(url: URL, proxies: [String: URL] = [:], useOAuth: Bool = false, allowOAuthCache: Bool = false, methods: [ExtractionMethod] = .default) {
         let videoID = Extraction.extractVideoID(from: url.absoluteString) ?? ""
         self.init(videoID: videoID, proxies: proxies, useOAuth: useOAuth, allowOAuthCache: allowOAuthCache, methods: methods)
     }
@@ -232,6 +236,7 @@ public class YouTube {
             
             let result = try await Task.retry(with: methods) { method in
                 switch method {
+#if canImport(JavaScriptCore)
                 case .local:
                     let allStreamingData = try await self.streamingData
                     let videoInfos = try await self.videoInfos
@@ -280,7 +285,7 @@ public class YouTube {
                     }
                     
                     return streams
-                    
+#endif
                     
                 case .remote(let serverURL):
                     let remoteClient = RemoteYouTubeClient(serverURL: serverURL)

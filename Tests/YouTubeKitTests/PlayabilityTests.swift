@@ -22,13 +22,19 @@ final class PlayabilityTests: XCTestCase {
     }
     
     func testStandardStreamNativePlayability() async {
-        
+
         let videoID = "V3dbG9pAi8I"
+#if canImport(JavaScriptCore)
         let youtubeLocal = YouTube(videoID: videoID, methods: [.local])
+#endif
         let youtubeRemote = YouTube(videoID: videoID, methods: [.remote])
-        
+
         do {
+#if canImport(JavaScriptCore)
             let streams = try await youtubeLocal.streams + youtubeRemote.streams
+#else
+            let streams = try await youtubeRemote.streams
+#endif
             
             for stream in streams {
                 let isPlayable = try await checkStreamPlayability(stream: stream)
@@ -42,13 +48,19 @@ final class PlayabilityTests: XCTestCase {
     
     
     func testHDRStreamNativePlayability() async {
-        
+
         let videoID = "njX2bu-_Vw4"
+#if canImport(JavaScriptCore)
         let youtubeLocal = YouTube(videoID: videoID, methods: [.local])
+#endif
         let youtubeRemote = YouTube(videoID: videoID, methods: [.remote])
-        
+
         do {
+#if canImport(JavaScriptCore)
             let streams = try await youtubeLocal.streams + youtubeRemote.streams
+#else
+            let streams = try await youtubeRemote.streams
+#endif
             
             for stream in streams {
                 let isPlayable = try await checkStreamPlayability(stream: stream)

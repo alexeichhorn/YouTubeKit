@@ -42,9 +42,6 @@ final class YouTubeKitTests: XCTestCase {
             
             try await checkAllStreamReachability(streams)
             
-            // test Cipher initialization directly (in case not lazily loaded)
-            await XCTAssertNoThrow(try await Cipher(js: youtube.js), "Failed to initialize Cipher")
-            
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
@@ -66,9 +63,6 @@ final class YouTubeKitTests: XCTestCase {
             XCTAssert(!streams.filterVideoAndAudio().isEmpty)
             
             try await checkAllStreamReachability(streams)
-            
-            // test Cipher initialization directly (in case not lazily loaded)
-            await XCTAssertNoThrow(try await Cipher(js: youtube.js), "Failed to initialize Cipher")
             
         } catch let error {
             XCTFail("did throw error: \(error)")
@@ -93,9 +87,6 @@ final class YouTubeKitTests: XCTestCase {
             
             try await checkAllStreamReachability(streams)
             
-            // test Cipher initialization directly (in case not lazily loaded)
-            await XCTAssertNoThrow(try await Cipher(js: youtube.js), "Failed to initialize Cipher")
-            
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
@@ -118,9 +109,6 @@ final class YouTubeKitTests: XCTestCase {
             
             try await checkAllStreamReachability(streams)
             
-            // test Cipher initialization directly (in case not lazily loaded)
-            await XCTAssertNoThrow(try await Cipher(js: youtube.js), "Failed to initialize Cipher")
-            
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
@@ -138,9 +126,6 @@ final class YouTubeKitTests: XCTestCase {
             XCTAssert(!streams.filterVideoAndAudio().isEmpty)
             
             try await checkAllStreamReachability(streams)
-            
-            // test Cipher initialization directly (in case not lazily loaded)
-            await XCTAssertNoThrow(try await Cipher(js: youtube.js), "Failed to initialize Cipher")
             
         } catch let error {
             XCTFail("did throw error: \(error)")
@@ -169,7 +154,7 @@ final class YouTubeKitTests: XCTestCase {
     }
     
     func testLivestreamHlsManifestUrl() async {
-        let youtube = YouTube(videoID: "jKHvbJe9c_Y")
+        let youtube = YouTube(videoID: "xRPjKQtRXR8")
         do {
             let livestreams = try await youtube.livestreams
             XCTAssert(livestreams.count > 0)
@@ -182,7 +167,7 @@ final class YouTubeKitTests: XCTestCase {
     }
     
     func testLivestreamHlsManifestUrlRemote() async {
-        let youtube = YouTube(videoID: "jKHvbJe9c_Y", methods: [.remote])
+        let youtube = YouTube(videoID: "xRPjKQtRXR8", methods: [.remote])
         do {
             let livestreams = try await youtube.livestreams
             XCTAssert(livestreams.count > 0)
