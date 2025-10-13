@@ -42,7 +42,6 @@ extension URLSessionWebSocketTask {
             let end = min(offset + maxChunkSize, encoded.count)
             let slice = encoded[offset..<end]
             let header = headerBytes(for: chunkIndex, totalChunks: totalChunks)
-            //print("sending chunk \(chunkIndex+1) of \(totalChunks) with size \(slice.count)") // TODO: remove
             try await send(.data(header + slice))
         }
     }
