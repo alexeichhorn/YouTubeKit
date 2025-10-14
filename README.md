@@ -1,10 +1,10 @@
 # YouTubeKit
 
-This package allows to extract the direct video url or audio url for any YouTube video. This therefore allows to play YouTube videos in native UI components.
+This package allows to extract the direct video url or audio url for any YouTube video. This therefore allows to play YouTube videos in native UI components. 
+
+It includes an optional [remote fallback](#remote-fallback) to ensure continued functionality even when YouTube updates their API, bridging the gap until you can update your app.
 
 **Disclaimer:** YouTubeKit is currently still a work in progress, so it might not work in all regions.
-
-The project was initially based on the [pytube project](https://github.com/pytube/pytube) (written in Python), but has since evolved more and more into its own standalone implementation.
 
 ## Compatibility
 It requires iOS 13, watchOS 6, tvOS 13 or macOS 10.15, since it's relying on the Swift 5.5 Concurrency module. visionOS is also supported.
