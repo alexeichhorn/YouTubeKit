@@ -4,7 +4,7 @@ This package allows to extract the direct video url or audio url for any YouTube
 
 **Disclaimer:** YouTubeKit is currently still a work in progress, so it might not work in all regions.
 
-The structurce of the code is strongly aligned with the [pytube project](https://github.com/pytube/pytube) (written in Python). This should make future breaking changes (by the YouTube API) easier to fix.
+The structure of the code is strongly aligned with the [pytube project](https://github.com/pytube/pytube) (written in Python). This should make future breaking changes (by the YouTube API) easier to fix.
 
 ## Compatibility
 It requires iOS 13, watchOS 6, tvOS 13 or macOS 10.15, since it's relying on the Swift 5.5 Concurrency module. visionOS is also supported.
@@ -83,9 +83,9 @@ let stream = try await YouTube(url: youtubeURL).streams
                           .filter { $0.includesVideoAndAudioTrack && $0.fileExtension == .mp4 }
                           .highestResolutionStream()
 
-let streamURL = stream.url                      
+let streamURL = stream.url
 ```
-The `isProgressive` parameter is used to filter only streams that contain both video and audio.
+The `includesVideoAndAudioTrack` parameter is used to filter only streams that contain both video and audio.
 
 
 ### Example 4
