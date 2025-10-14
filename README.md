@@ -4,7 +4,7 @@ This package allows to extract the direct video url or audio url for any YouTube
 
 **Disclaimer:** YouTubeKit is currently still a work in progress, so it might not work in all regions.
 
-The structure of the code is strongly aligned with the [pytube project](https://github.com/pytube/pytube) (written in Python). This should make future breaking changes (by the YouTube API) easier to fix.
+The project was initially based on the [pytube project](https://github.com/pytube/pytube) (written in Python), but has since evolved more and more into its own standalone implementation.
 
 ## Compatibility
 It requires iOS 13, watchOS 6, tvOS 13 or macOS 10.15, since it's relying on the Swift 5.5 Concurrency module. visionOS is also supported.
