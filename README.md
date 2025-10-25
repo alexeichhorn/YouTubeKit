@@ -1,10 +1,10 @@
 # YouTubeKit
 
-This package allows to extract the direct video url or audio url for any YouTube video. This therefore allows to play YouTube videos in native UI components.
+This package allows to extract the direct video url or audio url for any YouTube video. This therefore allows to play YouTube videos in native UI components. 
+
+It includes an optional [remote fallback](#remote-fallback) to ensure continued functionality even when YouTube updates their API, bridging the gap until you can update your app.
 
 **Disclaimer:** YouTubeKit is currently still a work in progress, so it might not work in all regions.
-
-The structurce of the code is strongly aligned with the [pytube project](https://github.com/pytube/pytube) (written in Python). This should make future breaking changes (by the YouTube API) easier to fix.
 
 ## Compatibility
 It requires iOS 13, watchOS 6, tvOS 13 or macOS 10.15, since it's relying on the Swift 5.5 Concurrency module. visionOS is also supported.
@@ -83,9 +83,9 @@ let stream = try await YouTube(url: youtubeURL).streams
                           .filter { $0.includesVideoAndAudioTrack && $0.fileExtension == .mp4 }
                           .highestResolutionStream()
 
-let streamURL = stream.url                      
+let streamURL = stream.url
 ```
-The `isProgressive` parameter is used to filter only streams that contain both video and audio.
+The `includesVideoAndAudioTrack` parameter is used to filter only streams that contain both video and audio.
 
 
 ### Example 4
@@ -108,6 +108,6 @@ You can also set `methods: [.remote]` if you only want remote extraction.
 #### How It Works
 Since streams are often bound to the device's location or IP address, we can't simply use `youtube-dl` on a remote server and send back the stream urls. Instead, the server makes all HTTP requests through the requesting device. When starting remote extraction, the device opens a WebSocket connection to the remote server. The server then sends multiple HTTP request packets to the device. The device executes these on behalf of the server and returns the full response. The server then processes and extracts the stream urls and sends them back to the device. This ensures the retrieved stream urls are playable on your device.
 
-Currently, the default remote server is hosted by me. A way for you to host it yourself is coming soon.
+The default remote server is hosted by me on Cloudflare Workers. The server implementation is open source and available at [YouTubeKit-Server](https://github.com/alexeichhorn/YouTubeKit-Server/tree/cloudflare-worker), allowing you to host your own instance if desired.
 
 
