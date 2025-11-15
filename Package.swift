@@ -5,6 +5,9 @@ import PackageDescription
 
 let package = Package(
     name: "YouTubeKitPlayer",
+    platforms: [
+        .iOS(.v15)
+    ],
     products: [
         .library(
             name: "YouTubeKitPlayer",
