@@ -4,15 +4,13 @@
 import PackageDescription
 
 let package = Package(
-    name: "YouTubeKit",
-    /*platforms: [
-        .macOS(.v12), .iOS(.v15), .watchOS(.v8), .tvOS(.v15)
-    ],*/
+    name: "YouTubeKitPlayer",  // ← Новое имя пакета
+    platforms: [.iOS(.v13)],
     products: [
-        // Products define the executables and libraries a package produces, and make them visible to other packages.
         .library(
-            name: "YouTubeKit",
-            targets: ["YouTubeKit"]),
+            name: "YouTubeKitPlayer",  // ← Новое имя продукта (ВАЖНО!)
+            targets: ["YouTubeKit"]     // ← Target оставляем как есть
+        ),
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
