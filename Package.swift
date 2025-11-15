@@ -4,12 +4,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "YouTubeKitPlayer",  // ← Новое имя пакета
-    platforms: [.iOS(.v13)],
+    name: "YouTubeKitPlayer",
+    platforms: [.iOS(.v15)],
     products: [
         .library(
-            name: "YouTubeKitPlayer",  // ← Новое имя продукта (ВАЖНО!)
-            targets: ["YouTubeKit"]     // ← Target оставляем как есть
+            name: "YouTubeKitPlayer",
+            targets: ["YouTubeKitPlayer"]
         ),
     ],
     dependencies: [
@@ -20,11 +20,11 @@ let package = Package(
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
-            name: "YouTubeKit",
+            name: "YouTubeKitPlayer",
             dependencies: [],
             resources: [.process("Resources")]),
         .testTarget(
-            name: "YouTubeKitTests",
-            dependencies: ["YouTubeKit"]),
+            name: "YouTubeKitPlayerTests",
+            dependencies: ["YouTubeKitPlayer"]),
     ]
 )
