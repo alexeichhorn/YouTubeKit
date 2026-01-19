@@ -355,7 +355,7 @@ public class YouTube {
             let signatureTimestamp = try await signatureTimestamp
             let ytcfg = try await ytcfg
             
-            let innertubeClients: [InnerTube.ClientType] = [.tv, .webSafari, .web]
+            let innertubeClients: [InnerTube.ClientType] = [.androidSdkless, .webSafari, .web]
             
             let results: [Result<InnerTube.VideoInfo, Error>] = await innertubeClients.concurrentMap { [videoID, useOAuth, allowOAuthCache] client in
                 let innertube = InnerTube(client: client, signatureTimestamp: signatureTimestamp, ytcfg: ytcfg, useOAuth: useOAuth, allowCache: allowOAuthCache)
