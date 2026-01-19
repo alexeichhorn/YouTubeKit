@@ -48,7 +48,7 @@ final class YouTubeKitTests: XCTestCase {
     }
     
     func testSampleVideo2() async {
-        let youtube = YouTube(videoID: "2lAe1cqCOXo")
+        let youtube = YouTube(videoID: "ZFoNBxpXen4")
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
