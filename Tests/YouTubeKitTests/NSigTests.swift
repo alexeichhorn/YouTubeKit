@@ -176,6 +176,7 @@ struct NSigTests {
             NSigPlayerRequest.Pair(input: "_HPB-7GFg1VTkn9u", output: "qUAsPryAO_ByYg"),
             NSigPlayerRequest.Pair(input: "K1t_fcB6phzuq2SF", output: "Y7PcOt3VE62mog")
         ]),
+        NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/c1c87fb0/player_ias_tce.vflset/en_US/base.js")!, input: "ZdZIqFPQK-Ty8wId", output: "jCHBK5GuAFNa2"),
     ])
     func nSigForPlayerURL(_ request: NSigPlayerRequest) async throws {
         let js = try await downloadJavascript(fromURL: request.playerURL)
