@@ -180,7 +180,7 @@ final class YouTubeKitTests: XCTestCase {
     }
     
     func testRemoteExtraction() async {
-        let youtube = YouTube(videoID: "2lAe1cqCOXo", methods: [.remote])
+        let youtube = YouTube(videoID: "dQw4w9WgXcQ", methods: [.remote])
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
