@@ -23,7 +23,9 @@ class InnerTube {
         var deviceModel: String? = nil
         
         var context: Context {
-            return Context(client: InnerTube.Context.ContextClient(clientName: name, clientVersion: version, clientScreen: screen, androidSdkVersion: androidSdkVersion, deviceModel: deviceModel))
+            let client = Context.ContextClient(clientName: name, clientVersion: version, clientScreen: screen, androidSdkVersion: androidSdkVersion, deviceModel: deviceModel)
+            let thirdParty = screen == "EMBED" ? Context.ThirdParty(embedUrl: "https://www.youtube.com/") : nil
+            return Context(client: client, thirdParty: thirdParty)
         }
         
         var headers: [String: String] {
@@ -37,13 +39,18 @@ class InnerTube {
     
     private struct Context: Encodable {
         let client: ContextClient
-        
+        var thirdParty: ThirdParty?
+
         struct ContextClient: Encodable {
             let clientName: String
             let clientVersion: String
             let clientScreen: String?
             let androidSdkVersion: Int?
             let deviceModel: String?
+        }
+
+        struct ThirdParty: Encodable {
+            let embedUrl: String
         }
     }
     
