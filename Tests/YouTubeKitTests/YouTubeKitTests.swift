@@ -152,6 +152,23 @@ final class YouTubeKitTests: XCTestCase {
             XCTFail("did throw error: \(error)")
         }
     }
+
+    func testSampleVideoMadeForKids() async {
+        let youtube = YouTube(videoID: "fnuCcot24DQ") // "Made for kids" video
+        do {
+            let streams = try await youtube.streams
+            XCTAssert(streams.count > 0)
+            checkStreams(streams)
+
+            XCTAssert(!streams.filterVideoOnly().isEmpty)
+            XCTAssert(!streams.filterAudioOnly().isEmpty)
+
+            try await checkAllStreamReachability(streams)
+
+        } catch let error {
+            XCTFail("did throw error: \(error)")
+        }
+    }
     
     func testLivestreamHlsManifestUrl() async {
         let youtube = YouTube(videoID: "vytmBNhc9ig")
