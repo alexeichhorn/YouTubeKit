@@ -6,6 +6,9 @@
 //
 
 import Foundation
+#if canImport(VideoToolbox)
+import VideoToolbox
+#endif
 
 protocol Codec: Sendable {
     associatedtype BaseCodec where BaseCodec: Equatable
@@ -61,7 +64,7 @@ public enum VideoCodec: Codec {
     public var isNativelyPlayable: Bool {
         switch self {
         case .mp4v(_): return true
-        case .av1(_): return false
+        case .av1(_): return Self.isAV1HardwareDecodeSupported
 #if os(watchOS)
         case .avc1(let version):
             if version == "64002A" {
@@ -75,7 +78,16 @@ public enum VideoCodec: Codec {
         case .unknown(_): return false
         }
     }
-    
+
+    private static let isAV1HardwareDecodeSupported: Bool = {
+#if canImport(VideoToolbox) && !os(watchOS)
+        if #available(iOS 13.0, macOS 10.15, tvOS 13.0, *) {
+            return VTIsHardwareDecodeSupported(kCMVideoCodecType_AV1)
+        }
+#endif
+        return false
+    }()
+
 }
 
 // MARK: - Audio Codec
