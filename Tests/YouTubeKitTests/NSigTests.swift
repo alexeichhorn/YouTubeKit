@@ -177,6 +177,17 @@ struct NSigTests {
             NSigPlayerRequest.Pair(input: "K1t_fcB6phzuq2SF", output: "Y7PcOt3VE62mog")
         ]),
         NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/c1c87fb0/player_ias_tce.vflset/en_US/base.js")!, input: "ZdZIqFPQK-Ty8wId", output: "jCHBK5GuAFNa2"),
+        NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/4e51e895/player_ias.vflset/en_US/base.js")!, input: "0eRGgQWJGfT5rFHFj", output: "t5kO23_msekBur"),
+        NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/42c5570b/player_ias_tce.vflset/en_US/base.js")!, input: "ZdZIqFPQK-Ty8wId", output: "CRoXjB-R-R"),
+        NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/ed3f6ea5/player_ias_tce.vflset/en_US/base.js")!, input: "ZdZIqFPQK-Ty8wId", output: "CRoXjB-R-R"),
+        NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/d6afc319/player_ias_tce.vflset/en_US/base.js")!, input: "ZdZIqFPQK-Ty8wId", output: "5RA1UjcYMe33HCQ"),
+        NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/8da75a6a/player_ias_tce.vflset/en_US/base.js")!, input: "ZdZIqFPQK-Ty8wId", output: "Q3JvBQziA7PvI"),
+        NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/54bd1de4/player_ias_tce.vflset/en_US/base.js")!, input: "ZdZIqFPQK-Ty8wId", output: "ka-slAQ31sijFN"),
+        NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/f104ea90/player_ias_tce.vflset/en_US/base.js")!, input: "ZdZIqFPQK-Ty8wId", output: "n5DnuOYzgrSUbWp"),
+        NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/3510b6ff/player_ias_tce.vflset/en_US/base.js")!, input: "ZdZIqFPQK-Ty8wId", output: "n5DnuOYzgrSUbWp"),
+        NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/0675bd00/player_ias_tce.vflset/en_US/base.js")!, input: "ZdZIqFPQK-Ty8wId", output: "n5DnuOYzgrSUbWp"),
+        NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/e0528946/player_ias_tce.vflset/en_US/base.js")!, input: "ZdZIqFPQK-Ty8wId", output: "cGKEGBME8PGi7z"),
+        NSigPlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/94667337/player_es6.vflset/en_US/base.js")!, input: "BQoJvGBkC2nj1ZZLK-", output: "ib1ShEOGoFXIIw"),
     ])
     func nSigForPlayerURL(_ request: NSigPlayerRequest) async throws {
         let js = try await downloadJavascript(fromURL: request.playerURL)
