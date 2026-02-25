@@ -132,6 +132,24 @@ final class YouTubeKitTests: XCTestCase {
         }
     }
     
+    func testSampleVideo6() async {
+        let youtube = YouTube(videoID: "jmIpv3ftEVM")
+        do {
+            let streams = try await youtube.streams
+            XCTAssert(streams.count > 0)
+            checkStreams(streams)
+            
+            XCTAssert(!streams.filterVideoOnly().isEmpty)
+            XCTAssert(!streams.filterAudioOnly().isEmpty)
+            XCTAssert(!streams.filterVideoAndAudio().isEmpty)
+            
+            try await checkAllStreamReachability(streams)
+            
+        } catch let error {
+            XCTFail("did throw error: \(error)")
+        }
+    }
+    
     func testSampleVideoAgeRestricted() async {
         let youtube = YouTube(videoID: "HtVdAasjOgU") // EX_8ZjT2sO4
         do {
@@ -154,7 +172,7 @@ final class YouTubeKitTests: XCTestCase {
     }
 
     func testSampleVideoMadeForKids() async {
-        let youtube = YouTube(videoID: "fnuCcot24DQ") // "Made for kids" video
+        let youtube = YouTube(videoID: "GObpYg_NjLQ") // "Made for kids" video
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
@@ -171,7 +189,7 @@ final class YouTubeKitTests: XCTestCase {
     }
 
     func testSampleVideoMadeForKidsRemote() async {
-        let youtube = YouTube(videoID: "fnuCcot24DQ", methods: [.remote]) // "Made for kids" video
+        let youtube = YouTube(videoID: "GObpYg_NjLQ", methods: [.remote]) // "Made for kids" video
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
