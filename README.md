@@ -58,7 +58,9 @@ let stream = try await YouTube(videoID: "QdBZY2fkU-0").streams
                           .filter { $0.isNativelyPlayable }
                           .highestResolutionStream()
 
-let player = AVPlayer(url: stream!.url)
+let asset = AVAsset(url: stream!.url)
+let playerItem = AVPlayerItem(asset: asset)
+let player = AVPlayer(playerItem: playerItem)
 // -> Now present the player however you like
 ```
 The `isNativelyPlayable` parameter is used to filter only streams that are natively decodable on the current operating system and device.
