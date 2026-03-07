@@ -24,9 +24,11 @@ class Extraction {
     }
     
     
-    /// Allows to override player id in case we have a (currently) unsolvable in the future
-    private static let PLAYER_ID_OVERRIDE: String? = nil
-    private static let PLAYER_STS_OVERRIDE: Int? = nil
+    /// (Allows to override player id in case we have a (currently) unsolvable in the future)
+    /// Pin a known-good player while YouTube's current player JS is unstable.
+    /// Mirrors the yt-dlp workaround from 2026-03-03.
+    private static let PLAYER_ID_OVERRIDE: String? = "9f4cc5e4"
+    private static let PLAYER_STS_OVERRIDE: Int? = 20514
 
     /// Get the base JavaScript url
     class func jsURL(html: String) throws -> String {

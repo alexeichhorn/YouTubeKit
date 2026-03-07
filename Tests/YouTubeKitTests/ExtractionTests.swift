@@ -16,5 +16,17 @@ final class ExtractionTests: XCTestCase {
         let videoID = Extraction.extractVideoID(from: url)
         XCTAssertEqual(videoID, "2lAe1cqCOXo")
     }
+
+    func testJSURLUsesPinnedPlayerOverride() throws {
+        let html = #"ytcfg.set({"STS":20515});var ytInitialPlayerResponse = {};var ytplayer = {"config":{"assets":{"js":"/s/player/6c5cb4f4/player_ias.vflset/en_US/base.js"}}};"#
+        let jsURL = try Extraction.jsURL(html: html)
+        XCTAssertEqual(jsURL, "https://youtube.com/s/player/9f4cc5e4/player_ias.vflset/en_US/base.js")
+    }
+
+    func testSignatureTimestampUsesPinnedOverride() throws {
+        let js = "signatureTimestamp:20515"
+        let signatureTimestamp = Extraction.extractSignatureTimestamp(fromJS: js)
+        XCTAssertEqual(signatureTimestamp, 20514)
+    }
     
 }
