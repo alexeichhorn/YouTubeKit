@@ -11,6 +11,9 @@ import Foundation
 @testable import YouTubeKit
 
 struct SignatureTests {
+    private static func utf8String(_ bytes: [UInt8]) -> String {
+        String(decoding: bytes, as: UTF8.self)
+    }
 
     struct SignaturePlayerRequest: CustomTestStringConvertible {
         let playerURL: URL
@@ -116,6 +119,17 @@ struct SignatureTests {
         SignaturePlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/0675bd00/player_ias_tce.vflset/en_US/base.js")!, input: "gN7a-hudCuAuPH6fByOk1_GNXN0yNMHShjZXS2VOgsEItAJz0tipeavEOmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt", output: "fJC2JtQdSswRAIgGBCxZyAfKyi0cjXCb3DqEctUw-NYdNmOEZaepit0z7AtIEsgOV2SX-jhSHMNy0NXNG_1kOyBf6HPuAuCduhv"),
         SignaturePlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/e0528946/player_ias_tce.vflset/en_US/base.js")!, input: "gN7a-hudCuAuPH6fByOk1_GNXN0yNMHShjZXS2VOgsEItAJz0tipeavEOmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt", output: "7a-hudCuAuPH6fByOk1_GNXN0yNMgShjZXS2VOgsEItAJz0tipeavEOmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2C"),
         SignaturePlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/94667337/player_es6.vflset/en_US/base.js")!, input: "NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz", output: "AJEij0EwRgIhAI0KExTgjfPk-MPM9MNdzyyPRtzBM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw="),
+        SignaturePlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/edc3ba07/tv-player-ias.vflset/tv-player-ias.js")!, input: "NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz", output: "zwg=wgwCHlydB9zg7PMegXoVzaoAXXB8woPSNZqRUC3Pe7vAEiApVSCMlh5mt5OX-8MB=tRPyyEdAM9MPM-kPfjgTxEK0IAhIgRwE0jiz"),
+        SignaturePlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/316b61b4/tv-player-ias.vflset/tv-player-ias.js")!, input: "NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz", output: "tJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRN=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwz"),
+        SignaturePlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/74edf1a3/tv-player-ias.vflset/tv-player-ias.js")!, pairs: [
+            SignaturePlayerRequest.Pair(input: "NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz", output: "NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hzMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzl"),
+            SignaturePlayerRequest.Pair(
+                input: Self.utf8String([0, 1, 2, 37, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]),
+                output: Self.utf8String([0, 1, 2, 37, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 49, 44, 45, 46, 47, 48, 43])
+            )
+        ]),
+        SignaturePlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/901741ab/tv-player-ias.vflset/tv-player-ias.js")!, input: "NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz", output: "wgwCHlydB9Hg7PMegXoVzaoAXXB8woPSNZqRUC3Pe7vAEiApVSCMlhwmt5ON-8MB=5RPyyzdAM9MPM-kPfjgTxEK0IAhIgRwE0jiEJA"),
+        SignaturePlayerRequest(playerURL: URL(string: "https://www.youtube.com/s/player/e7573094/tv-player-ias.vflset/tv-player-ias.js")!, input: "NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz", output: "yEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyNPRt=BM8-XO5tm5hlMCSVNAiEAvpeP3CURqZJSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=g"),
     ])
     func signatureForPlayerURL(_ request: SignaturePlayerRequest) async throws {
         let js = try await downloadJavascript(fromURL: request.playerURL)
