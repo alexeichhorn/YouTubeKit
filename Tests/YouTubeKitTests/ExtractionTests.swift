@@ -28,5 +28,11 @@ final class ExtractionTests: XCTestCase {
         let signatureTimestamp = Extraction.extractSignatureTimestamp(fromJS: js)
         XCTAssertEqual(signatureTimestamp, 20514)
     }
+
+    func testExtractYtCfgParsesEmbeddedEncryptedHostFlags() throws {
+        let html = #"ytcfg.set({"VISITOR_DATA":"visitor","WEB_PLAYER_CONTEXT_CONFIGS":{"WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER":{"encryptedHostFlags":"test-flags"}}});"#
+        let ytcfg = try Extraction.extractYtCfg(from: html)
+        XCTAssertEqual(ytcfg.embeddedPlayerEncryptedHostFlags, "test-flags")
+    }
     
 }

@@ -152,6 +152,7 @@ class Extraction {
     struct YtCfg: Decodable {
         let VISITOR_DATA: String?
         let INNERTUBE_CONTEXT: Context?
+        let WEB_PLAYER_CONTEXT_CONFIGS: WebPlayerContextConfigs?
         
         struct Context: Decodable {
             let client: Client
@@ -161,6 +162,14 @@ class Extraction {
                 let userAgent: String?
             }
         }
+
+        struct WebPlayerContextConfigs: Decodable {
+            let WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER: EmbeddedPlayer?
+
+            struct EmbeddedPlayer: Decodable {
+                let encryptedHostFlags: String?
+            }
+        }
         
         var visitorData: String? {
             VISITOR_DATA ?? INNERTUBE_CONTEXT?.client.visitorData
@@ -168,6 +177,10 @@ class Extraction {
         
         var userAgent: String? {
             INNERTUBE_CONTEXT?.client.userAgent
+        }
+
+        var embeddedPlayerEncryptedHostFlags: String? {
+            WEB_PLAYER_CONTEXT_CONFIGS?.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER?.encryptedHostFlags
         }
     }
     

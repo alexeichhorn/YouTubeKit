@@ -24,7 +24,7 @@ class InnerTube {
         
         var context: Context {
             let client = Context.ContextClient(clientName: name, clientVersion: version, clientScreen: screen, androidSdkVersion: androidSdkVersion, deviceModel: deviceModel)
-            let thirdParty = screen == "EMBED" ? Context.ThirdParty(embedUrl: "https://www.youtube.com/") : nil
+            let thirdParty = screen == "EMBED" ? Context.ThirdParty(embedUrl: "https://www.reddit.com/") : nil
             return Context(client: client, thirdParty: thirdParty)
         }
         
@@ -88,6 +88,7 @@ class InnerTube {
     private let context: Context
     private let headers: [String: String]
     private let playerParams: String?
+    private let encryptedHostFlags: String?
 
     private let ytcfg: Extraction.YtCfg
     private let signatureTimestamp: Int?
@@ -99,6 +100,7 @@ class InnerTube {
         self.apiKey = defaultClients[client]!.apiKey
         self.headers = defaultClients[client]!.headers
         self.playerParams = defaultClients[client]!.playerParams
+        self.encryptedHostFlags = client == .webEmbed ? ytcfg.embeddedPlayerEncryptedHostFlags : nil
         self.signatureTimestamp = signatureTimestamp
         self.ytcfg = ytcfg
         self.useOAuth = useOAuth
@@ -243,6 +245,7 @@ class InnerTube {
         struct Context: Encodable {
             let html5Preference = "HTML5_PREF_WANTS"
             let signatureTimestamp: Int?
+            let encryptedHostFlags: String?
         }
     }
     
@@ -256,7 +259,7 @@ class InnerTube {
     }
     
     private func playerRequest(forVideoID videoID: String) -> PlayerRequest {
-        let playbackContext = PlaybackContext(contentPlaybackContext: PlaybackContext.Context(signatureTimestamp: signatureTimestamp))
+        let playbackContext = PlaybackContext(contentPlaybackContext: PlaybackContext.Context(signatureTimestamp: signatureTimestamp, encryptedHostFlags: encryptedHostFlags))
         return PlayerRequest(context: context, videoId: videoID, params: playerParams, playbackContext: playbackContext)
     }
     
