@@ -74,7 +74,7 @@ class InnerTube {
         ClientType.mWeb: Client(name: "MWEB", version: "2.20250925.01.00", screen: nil, apiKey: "", internalID: 2, userAgent: nil)
     ]
     
-    enum ClientType: String {
+    enum ClientType: String, Sendable {
         case web, webSafari, android, androidSdkless, androidMusic, androidVR, webEmbed, webCreator, androidEmbed, tv, tvEmbed, ios, iosMusic, mediaConnectFrontend, mWeb
     }
     

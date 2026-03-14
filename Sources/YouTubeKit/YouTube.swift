@@ -8,6 +8,11 @@
 import Foundation
 @preconcurrency import os.log
 
+private enum ClientYtCfgKey: Hashable, Sendable {
+    case watch
+    case embedded
+}
+
 @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
 public class YouTube {
     
@@ -29,11 +34,11 @@ public class YouTube {
     private var playerConfigArgs: [String: Any]?
     private var _ageRestricted: Bool?
     private var _signatureTimestamp: Int?
-    private var _ytcfg: Extraction.YtCfg?
     
     private var _fmtStreams: [Stream]?
     
     private var initialData: Data?
+    private let clientYtCfgStore = AsyncValueStore<ClientYtCfgKey, Extraction.YtCfg>()
 
     /// Represents a property that provides metadata for a YouTube video.
     ///
@@ -56,7 +61,7 @@ public class YouTube {
     }
     
     var embedURL: URL {
-        URL(string: "https://www.youtube.com/embed/\(videoID)")!
+        URL(string: "https://www.youtube.com/embed/\(videoID)?html5=1")!
     }
     
     // stream monostate TODO
@@ -97,17 +102,24 @@ public class YouTube {
     }
     
     
+    private func fetchHTML(url: URL, referer: String? = nil) async throws -> String {
+        var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
+        request.setValue("en-US,en", forHTTPHeaderField: "accept-language")
+        if let referer {
+            request.setValue(referer, forHTTPHeaderField: "Referer")
+        }
+        request.httpShouldHandleCookies = false
+        let (data, _) = try await URLSession.shared.data(for: request)
+        return String(data: data, encoding: .utf8) ?? ""
+    }
+    
     private var watchHTML: String {
         get async throws {
             if let cached = _watchHTML {
                 return cached
             }
-            var request = URLRequest(url: extendedWatchURL)
-            request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
-            request.setValue("en-US,en", forHTTPHeaderField: "accept-language")
-            request.httpShouldHandleCookies = false
-            let (data, _) = try await URLSession.shared.data(for: request)
-            _watchHTML = String(data: data, encoding: .utf8) ?? ""
+            _watchHTML = try await fetchHTML(url: extendedWatchURL)
             return _watchHTML!
         }
     }
@@ -117,12 +129,7 @@ public class YouTube {
             if let cached = _embedHTML {
                 return cached
             }
-            var request = URLRequest(url: embedURL)
-            request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
-            request.setValue("en-US,en", forHTTPHeaderField: "accept-language")
-            request.httpShouldHandleCookies = false
-            let (data, _) = try await URLSession.shared.data(for: request)
-            _embedHTML = String(data: data, encoding: .utf8) ?? ""
+            _embedHTML = try await fetchHTML(url: embedURL, referer: "https://www.reddit.com/")
             return _embedHTML!
         }
     }
@@ -215,12 +222,19 @@ public class YouTube {
     
     var ytcfg: Extraction.YtCfg {
         get async throws {
-            if let cached = _ytcfg {
-                return cached
+            try await ytcfg(for: .web)
+        }
+    }
+    
+    private func ytcfg(for client: InnerTube.ClientType) async throws -> Extraction.YtCfg {
+        let key: ClientYtCfgKey = client == .webEmbed ? .embedded : .watch
+        return try await clientYtCfgStore.value(for: key) { [self] in
+            switch key {
+            case .watch:
+                return try Extraction.extractYtCfg(from: await watchHTML)
+            case .embedded:
+                return try Extraction.extractYtCfg(from: await embedHTML)
             }
-            
-            _ytcfg = try await Extraction.extractYtCfg(from: watchHTML)
-            return _ytcfg!
         }
     }
     
@@ -353,14 +367,14 @@ public class YouTube {
             }
 
             let signatureTimestamp = try await signatureTimestamp
-            let ytcfg = try await ytcfg
             
             let innertubeClients: [InnerTube.ClientType] = [.androidVR, .webSafari, .web]
             
             let results: [Result<InnerTube.VideoInfo, Error>] = await innertubeClients.concurrentMap { [videoID, useOAuth, allowOAuthCache] client in
-                let innertube = InnerTube(client: client, signatureTimestamp: signatureTimestamp, ytcfg: ytcfg, useOAuth: useOAuth, allowCache: allowOAuthCache)
                 
                 do {
+                    let ytcfg = try await self.ytcfg(for: client)
+                    let innertube = InnerTube(client: client, signatureTimestamp: signatureTimestamp, ytcfg: ytcfg, useOAuth: useOAuth, allowCache: allowOAuthCache)
                     let innertubeResponse = try await innertube.player(videoID: videoID)
                     return .success(innertubeResponse)
                 } catch let error {
@@ -402,7 +416,7 @@ public class YouTube {
     
     private func loadAdditionalVideoInfos(forClient client: InnerTube.ClientType) async throws -> InnerTube.VideoInfo {
         let signatureTimestamp = try await signatureTimestamp
-        let ytcfg = try await ytcfg
+        let ytcfg = try await ytcfg(for: client)
         let innertube = InnerTube(client: client, signatureTimestamp: signatureTimestamp, ytcfg: ytcfg, useOAuth: useOAuth, allowCache: allowOAuthCache)
         let videoInfo = try await innertube.player(videoID: videoID)
         
@@ -417,7 +431,7 @@ public class YouTube {
     
     private func bypassAgeGate() async throws {
         let signatureTimestamp = try await signatureTimestamp
-        let ytcfg = try await ytcfg
+        let ytcfg = try await ytcfg(for: .webCreator)
         let innertube = InnerTube(client: .webCreator, signatureTimestamp: signatureTimestamp, ytcfg: ytcfg, useOAuth: useOAuth, allowCache: allowOAuthCache)
         let innertubeResponse = try await innertube.player(videoID: videoID)
 
