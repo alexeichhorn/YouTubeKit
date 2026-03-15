@@ -24,7 +24,7 @@ class InnerTube {
         
         var context: Context {
             let client = Context.ContextClient(clientName: name, clientVersion: version, clientScreen: screen, androidSdkVersion: androidSdkVersion, deviceModel: deviceModel)
-            let thirdParty = screen == "EMBED" ? Context.ThirdParty(embedUrl: "https://www.reddit.com/") : nil
+            let thirdParty = screen == "EMBED" ? Context.ThirdParty(embedUrl: "https://www.youtube.com/") : nil
             return Context(client: client, thirdParty: thirdParty)
         }
         
