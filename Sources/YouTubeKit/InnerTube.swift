@@ -61,7 +61,8 @@ class InnerTube {
         ClientType.android: Client(name: "ANDROID", version: "20.10.38", screen: nil, apiKey: "AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w", internalID: 3, userAgent: "com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip", playerParams: "CgIQBg==", androidSdkVersion: 30),
         ClientType.androidSdkless: Client(name: "ANDROID", version: "21.02.35", screen: nil, apiKey: "", internalID: 3, userAgent: "com.google.android.youtube/21.02.35 (Linux; U; Android 11) gzip"),
         ClientType.androidMusic: Client(name: "ANDROID_MUSIC", version: "5.16.51", screen: nil, apiKey: "AIzaSyAOghZGza2MQSZkY_zfZ370N-PUdXEo8AI", internalID: 21, userAgent: "com.google.android.apps.youtube.music/5.16.51 (Linux; U; Android 11) gzip", playerParams: "CgIQBg==", androidSdkVersion: 30),
-        ClientType.androidVR: Client(name: "ANDROID_VR", version: "1.71.26", screen: nil, apiKey: "", internalID: 28, userAgent: "com.google.android.apps.youtube.vr.oculus/1.71.26 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip", androidSdkVersion: 32, deviceModel: "Quest 3"),
+        // yt-dlp rolled this client back because newer versions can yield SABR-only streams.
+        ClientType.androidVR: Client(name: "ANDROID_VR", version: "1.65.10", screen: nil, apiKey: "", internalID: 28, userAgent: "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip", androidSdkVersion: 32, deviceModel: "Quest 3"),
         ClientType.webEmbed: Client(name: "WEB_EMBEDDED_PLAYER", version: "1.20260115.01.00", screen: "EMBED", apiKey: "", internalID: 56, userAgent: "Mozilla/5.0"),
         ClientType.webCreator: Client(name: "WEB_CREATOR", version: "1.20250922.03.00", screen: nil, apiKey: "", internalID: 62, userAgent: nil),
         ClientType.androidEmbed: Client(name: "ANDROID_EMBEDDED_PLAYER", version: "18.11.34", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", internalID: 3, userAgent: "com.google.android.youtube/18.11.34 (Linux; U; Android 11) gzip"),
@@ -87,6 +88,7 @@ class InnerTube {
     private let context: Context
     private let headers: [String: String]
     private let playerParams: String?
+    private let encryptedHostFlags: String?
 
     private let ytcfg: Extraction.YtCfg
     private let signatureTimestamp: Int?
@@ -98,6 +100,7 @@ class InnerTube {
         self.apiKey = defaultClients[client]!.apiKey
         self.headers = defaultClients[client]!.headers
         self.playerParams = defaultClients[client]!.playerParams
+        self.encryptedHostFlags = client == .webEmbed ? ytcfg.embeddedPlayerEncryptedHostFlags : nil
         self.signatureTimestamp = signatureTimestamp
         self.ytcfg = ytcfg
         self.useOAuth = useOAuth
@@ -242,6 +245,7 @@ class InnerTube {
         struct Context: Encodable {
             let html5Preference = "HTML5_PREF_WANTS"
             let signatureTimestamp: Int?
+            let encryptedHostFlags: String?
         }
     }
     
@@ -255,7 +259,7 @@ class InnerTube {
     }
     
     private func playerRequest(forVideoID videoID: String) -> PlayerRequest {
-        let playbackContext = PlaybackContext(contentPlaybackContext: PlaybackContext.Context(signatureTimestamp: signatureTimestamp))
+        let playbackContext = PlaybackContext(contentPlaybackContext: PlaybackContext.Context(signatureTimestamp: signatureTimestamp, encryptedHostFlags: encryptedHostFlags))
         return PlayerRequest(context: context, videoId: videoID, params: playerParams, playbackContext: playbackContext)
     }
     

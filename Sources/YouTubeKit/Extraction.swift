@@ -24,11 +24,9 @@ class Extraction {
     }
     
     
-    /// (Allows to override player id in case we have a (currently) unsolvable in the future)
-    /// Pin a known-good player while YouTube's current player JS is unstable.
-    /// Mirrors the yt-dlp workaround from 2026-03-03.
-    private static let PLAYER_ID_OVERRIDE: String? = "9f4cc5e4"
-    private static let PLAYER_STS_OVERRIDE: Int? = 20514
+    /// Allows to override player id in case we have a (currently) unsolvable in the future
+    private static let PLAYER_ID_OVERRIDE: String? = nil
+    private static let PLAYER_STS_OVERRIDE: Int? = nil
 
     /// Get the base JavaScript url
     class func jsURL(html: String) throws -> String {
@@ -44,11 +42,16 @@ class Extraction {
            let _ = groupMatches[2]?.content,
            let suffix = groupMatches[3]?.content {
             let fixedURL = prefix + PLAYER_ID_OVERRIDE + suffix
-            return "https://youtube.com" + fixedURL
+            guard let normalizedURL = URL(string: fixedURL, relativeTo: URL(string: "https://youtube.com"))?.absoluteURL else {
+                throw YouTubeKitError.regexMatchError
+            }
+            return normalizedURL.absoluteString
         }
 
-        // Fallback to extracted URL if pattern doesn't match (shouldn't happen)
-        return "https://youtube.com" + baseURL
+        guard let normalizedURL = URL(string: baseURL, relativeTo: URL(string: "https://youtube.com"))?.absoluteURL else {
+            throw YouTubeKitError.regexMatchError
+        }
+        return normalizedURL.absoluteString
     }
     
     /// Get the YouTube player base JavaScript path.
@@ -152,6 +155,7 @@ class Extraction {
     struct YtCfg: Decodable {
         let VISITOR_DATA: String?
         let INNERTUBE_CONTEXT: Context?
+        let WEB_PLAYER_CONTEXT_CONFIGS: WebPlayerContextConfigs?
         
         struct Context: Decodable {
             let client: Client
@@ -161,6 +165,14 @@ class Extraction {
                 let userAgent: String?
             }
         }
+
+        struct WebPlayerContextConfigs: Decodable {
+            let WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER: EmbeddedPlayer?
+
+            struct EmbeddedPlayer: Decodable {
+                let encryptedHostFlags: String?
+            }
+        }
         
         var visitorData: String? {
             VISITOR_DATA ?? INNERTUBE_CONTEXT?.client.visitorData
@@ -168,6 +180,10 @@ class Extraction {
         
         var userAgent: String? {
             INNERTUBE_CONTEXT?.client.userAgent
+        }
+
+        var embeddedPlayerEncryptedHostFlags: String? {
+            WEB_PLAYER_CONTEXT_CONFIGS?.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER?.encryptedHostFlags
         }
     }
     

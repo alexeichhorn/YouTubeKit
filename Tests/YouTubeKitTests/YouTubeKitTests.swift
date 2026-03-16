@@ -276,10 +276,10 @@ final class YouTubeKitTests: XCTestCase {
     }
     
     func testMetadataForLive() async {
-        let youtube = YouTube(videoID: "Z-Nwo-ypKtM")
+        let youtube = YouTube(videoID: "LuKwFajn37U")
         do {
             let metadata = try await youtube.metadata!
-            XCTAssertEqual(metadata.title, "franceinfo - DIRECT TV - actualité France et monde, interviews, documentaires et analyses")
+            XCTAssertEqual(metadata.title, "DW News livestream | Headline news from around the world")
             XCTAssertFalse(metadata.description.isEmpty)
             XCTAssertNotNil(metadata.thumbnail!.url)
         } catch let error {
