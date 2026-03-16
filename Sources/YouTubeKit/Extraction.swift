@@ -42,11 +42,16 @@ class Extraction {
            let _ = groupMatches[2]?.content,
            let suffix = groupMatches[3]?.content {
             let fixedURL = prefix + PLAYER_ID_OVERRIDE + suffix
-            return "https://youtube.com" + fixedURL
+            guard let normalizedURL = URL(string: fixedURL, relativeTo: URL(string: "https://youtube.com"))?.absoluteURL else {
+                throw YouTubeKitError.regexMatchError
+            }
+            return normalizedURL.absoluteString
         }
 
-        // Fallback to extracted URL if pattern doesn't match (shouldn't happen)
-        return "https://youtube.com" + baseURL
+        guard let normalizedURL = URL(string: baseURL, relativeTo: URL(string: "https://youtube.com"))?.absoluteURL else {
+            throw YouTubeKitError.regexMatchError
+        }
+        return normalizedURL.absoluteString
     }
     
     /// Get the YouTube player base JavaScript path.
