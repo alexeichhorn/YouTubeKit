@@ -209,7 +209,7 @@ public class YouTube {
             }
             
             _signatureTimestamp = try await Extraction.extractSignatureTimestamp(fromJS: js)
-            return _signatureTimestamp!
+            return _signatureTimestamp
         }
     }
     
