@@ -24,13 +24,9 @@ class Extraction {
     }
     
     
-    /// Known working player ID and STS (from yt-dlp fix for broken YouTube players)
-    /// See: https://github.com/yt-dlp/yt-dlp/pull/14398
-    /// Format: STS@PLAYER_ID (20348@0004de42)
-    /// These MUST match - you cannot mix player ID with different STS
-    /// Update this when it stops working by checking NSigTests.swift
-    private static let PLAYER_ID_OVERRIDE: String? = "0004de42"
-    private static let PLAYER_STS_OVERRIDE: Int? = 20348
+    /// Allows to override player id in case we have a (currently) unsolvable in the future
+    private static let PLAYER_ID_OVERRIDE: String? = nil
+    private static let PLAYER_STS_OVERRIDE: Int? = nil
 
     /// Get the base JavaScript url
     class func jsURL(html: String) throws -> String {
@@ -46,11 +42,16 @@ class Extraction {
            let _ = groupMatches[2]?.content,
            let suffix = groupMatches[3]?.content {
             let fixedURL = prefix + PLAYER_ID_OVERRIDE + suffix
-            return "https://youtube.com" + fixedURL
+            guard let normalizedURL = URL(string: fixedURL, relativeTo: URL(string: "https://youtube.com"))?.absoluteURL else {
+                throw YouTubeKitError.regexMatchError
+            }
+            return normalizedURL.absoluteString
         }
 
-        // Fallback to extracted URL if pattern doesn't match (shouldn't happen)
-        return "https://youtube.com" + baseURL
+        guard let normalizedURL = URL(string: baseURL, relativeTo: URL(string: "https://youtube.com"))?.absoluteURL else {
+            throw YouTubeKitError.regexMatchError
+        }
+        return normalizedURL.absoluteString
     }
     
     /// Get the YouTube player base JavaScript path.
@@ -154,6 +155,7 @@ class Extraction {
     struct YtCfg: Decodable {
         let VISITOR_DATA: String?
         let INNERTUBE_CONTEXT: Context?
+        let WEB_PLAYER_CONTEXT_CONFIGS: WebPlayerContextConfigs?
         
         struct Context: Decodable {
             let client: Client
@@ -163,6 +165,14 @@ class Extraction {
                 let userAgent: String?
             }
         }
+
+        struct WebPlayerContextConfigs: Decodable {
+            let WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER: EmbeddedPlayer?
+
+            struct EmbeddedPlayer: Decodable {
+                let encryptedHostFlags: String?
+            }
+        }
         
         var visitorData: String? {
             VISITOR_DATA ?? INNERTUBE_CONTEXT?.client.visitorData
@@ -170,6 +180,10 @@ class Extraction {
         
         var userAgent: String? {
             INNERTUBE_CONTEXT?.client.userAgent
+        }
+
+        var embeddedPlayerEncryptedHostFlags: String? {
+            WEB_PLAYER_CONTEXT_CONFIGS?.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER?.encryptedHostFlags
         }
     }
     
@@ -377,27 +391,55 @@ class Extraction {
         return formats
     }
     
+#if canImport(JavaScriptCore)
     /// apply the decrypted signature to the stream manifest
     class func applySignature(streamManifest: inout [InnerTube.StreamingData.Format], videoInfo: InnerTube.VideoInfo, js: String) throws {
-        var cipher = ThrowingLazy(try Cipher(js: js))
-        
+        let solver = try SignatureSolver(js: js)
+
+        var sigInputs: [String] = []
+        var nInputs: [String] = []
+
+        // First pass: collect all inputs
+        for stream in streamManifest {
+            if let url = stream.url {
+                guard let urlComponents = URLComponents(string: url) else { continue }
+
+                let signatureFound = url.contains("signature") || (stream.s == nil && (url.contains("&sig=") || url.contains("&lsig=")))
+
+                if !signatureFound {
+                    if let cipheredSignature = stream.s {
+                        sigInputs.append(cipheredSignature)
+                    }
+                }
+
+                if let initialN = urlComponents.queryItems?["n"] {
+                    nInputs.append(initialN)
+                }
+            }
+        }
+
+        // Batch solve all signatures and n-parameters
+        let request = SignatureSolver.SolveRequest(nInputs: nInputs, sigInputs: sigInputs)
+        let response = try solver.batchSolve(request: request)
+
         var invalidStreamIndices = [Int]()
-        
+
+        // Second pass: apply results
         for (i, stream) in streamManifest.enumerated() {
             if let url = stream.url {
                 guard var urlComponents = URLComponents(string: url) else { continue } // TODO: fail differently
-                
+
                 if urlComponents.queryItems == nil {
                     urlComponents.queryItems = []
                 }
-                
+
                 let signatureFound = url.contains("signature") || (stream.s == nil && (url.contains("&sig=") || url.contains("&lsig=")))
-                
+
                 if !signatureFound {
-                    
+
                     // apply "s" signature
                     if let cipheredSignature = stream.s {
-                        guard let signature = try cipher.value.getSignature(cipheredSignature: cipheredSignature) else {
+                        guard let signature = response.sigMap[cipheredSignature] else {
                             os_log("failed to decrypt signature for itag=%{public}i, removing stream", log: log, type: .error, stream.itag)
                             invalidStreamIndices.append(i)
                             continue
@@ -409,33 +451,37 @@ class Extraction {
                         let paramName = stream.sp ?? "signature"
                         urlComponents.queryItems?[paramName] = signature
                     }
-                    
+
                 } else {
                     // os_log("signature found, skip decipher", log: log, type: .debug)
                 }
-                
-                
+
+
                 // apply throttling "n" signature
                 if let initialN = urlComponents.queryItems?["n"] {
-                    let newN = try cipher.value.calculateN(initialN: initialN)
+                    guard let newN = response.nMap[initialN] else {
+                        invalidStreamIndices.append(i)
+                        continue
+                    }
                     urlComponents.queryItems?["n"] = newN
-                    
+
                     if newN.isEmpty {
                         invalidStreamIndices.append(i)
                     }
                 }
-                
-                
+
+
                 let url = urlComponents.url?.absoluteString ?? url
                 streamManifest[i].url = url
             }
         }
-        
+
         // Remove invalid streams
         for index in invalidStreamIndices.reversed() {
             streamManifest.remove(at: index)
         }
     }
+#endif
     
     /// Filter out all audio streams that are not original language (i.e. dubbed)
     class func filterOutDubbedAudio(streamManifest: [InnerTube.StreamingData.Format]) -> [InnerTube.StreamingData.Format] {
