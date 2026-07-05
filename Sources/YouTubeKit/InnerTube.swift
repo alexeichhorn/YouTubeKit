@@ -218,7 +218,7 @@ class InnerTube {
             let height: Int?
             let lastModified: String?
             let contentLength: String?
-            let quality: String
+            let quality: String?
             let fps: Int?
             let qualityLabel: String?
             let averageBitrate: Int?

@@ -297,6 +297,18 @@ final class YouTubeKitTests: XCTestCase {
         }
     }
     
+    func testStreamingFormatDecodesWithoutQuality() throws {
+        let json = #"""
+        {
+            "itag": 18,
+            "url": "https://example.com/video.mp4",
+            "mimeType": "video/mp4; codecs=\"avc1.42001E, mp4a.40.2\""
+        }
+        """#
+        let format = try JSONDecoder().decode(InnerTube.StreamingData.Format.self, from: Data(json.utf8))
+        XCTAssertNil(format.quality)
+    }
+    
 
     // MARK: - Performance Measurement
     
