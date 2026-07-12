@@ -14,6 +14,33 @@ class SignatureSolver {
 
     private static let log = OSLog(SignatureSolver.self)
 
+    // MARK: Shared instance cache
+    // Solver construction (JSContext + meriyah/astring bundle eval) and the first
+    // solve (full player parse) are very expensive on JIT-less platforms (tvOS/iOS
+    // JavaScriptCore runs interpreted). Cache one solver per player-JS version so
+    // subsequent videos reuse the context and the preprocessed player.
+    private static let sharedLock = NSLock()
+    nonisolated(unsafe) private static var sharedSolver: (jsHash: Int, solver: SignatureSolver)?
+
+    static func shared(forJS js: String) throws -> SignatureSolver {
+        let hash = js.hashValue
+        sharedLock.lock()
+        defer { sharedLock.unlock() }
+        if let cached = sharedSolver, cached.jsHash == hash {
+            return cached.solver
+        }
+        let start = Date()
+        let solver = try SignatureSolver(js: js)
+        os_log("solver init took %.2fs", log: log, type: .default, Date().timeIntervalSince(start))
+        sharedSolver = (hash, solver)
+        return solver
+    }
+
+    /// Player preprocessed by the first solve; skips the full player parse afterwards
+    private var preprocessedPlayer: String?
+    /// JSContext isn't thread-safe; the shared instance serializes solves
+    private let solveLock = NSLock()
+
     private let vm = JSVirtualMachine()
     private let ctx: JSContext
     
@@ -148,21 +175,44 @@ class SignatureSolver {
     }
     
     func batchSolve(request: SolveRequest) throws -> SolveResponse {
+        solveLock.lock()
+        defer { solveLock.unlock() }
+
+        if #available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *) {
+            try Task.checkCancellation()
+        }
 
         let requests = [
             Request(type: .n, challenges: request.nInputs),
             Request(type: .sig, challenges: request.sigInputs)
         ]
 
-        let input = Input(
-            type: .player,
-            player: self.playerJS,
-            preprocessed_player: nil,
-            requests: requests,
-            output_preprocessed: false
-        )
+        let input: Input
+        if let preprocessedPlayer {
+            input = Input(
+                type: .preprocessedPlayer,
+                player: nil,
+                preprocessed_player: preprocessedPlayer,
+                requests: requests,
+                output_preprocessed: false
+            )
+        } else {
+            input = Input(
+                type: .player,
+                player: self.playerJS,
+                preprocessed_player: nil,
+                requests: requests,
+                output_preprocessed: true
+            )
+        }
 
+        let solveStart = Date()
         let response = try solve(with: input)
+        os_log("batch solve took %.2fs (preprocessed: %{public}@)", log: Self.log, type: .default, Date().timeIntervalSince(solveStart), preprocessedPlayer != nil ? "yes" : "no")
+
+        if preprocessedPlayer == nil {
+            preprocessedPlayer = response.preprocessed_player
+        }
 
         var nMap: [String: String] = [:]
         var sigMap: [String: String] = [:]
