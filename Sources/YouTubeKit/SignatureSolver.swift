@@ -24,7 +24,11 @@ class SignatureSolver {
     /// Bounded because each solver retains a JSContext and the ~2 MB player;
     /// a session rarely uses more than a couple of player variants (e.g. web
     /// vs TV/embed), so alternating between them still reuses each solver.
+#if swift(>=5.10)
     nonisolated(unsafe) private static var sharedSolvers: [SignatureSolver] = []
+#else
+    private static var sharedSolvers: [SignatureSolver] = []
+#endif
     private static let maxCachedSolvers = 4
 
     static func shared(forJS js: String) throws -> SignatureSolver {
