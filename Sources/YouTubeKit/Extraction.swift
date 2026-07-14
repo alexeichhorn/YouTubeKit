@@ -394,7 +394,8 @@ class Extraction {
 #if canImport(JavaScriptCore)
     /// apply the decrypted signature to the stream manifest
     class func applySignature(streamManifest: inout [InnerTube.StreamingData.Format], videoInfo: InnerTube.VideoInfo, js: String) throws {
-        let solver = try SignatureSolver(js: js)
+        try Task.checkCancellation()
+        let solver = try SignatureSolver.shared(forJS: js)
 
         var sigInputs: [String] = []
         var nInputs: [String] = []

@@ -250,6 +250,10 @@ public class YouTube {
                         
                         do {
                             try await Extraction.applySignature(streamManifest: &streamManifest, videoInfo: videoInfo, js: js)
+                        } catch is CancellationError {
+                            // Cancellation is not a stale-JS failure — propagate it
+                            // immediately instead of clearing the cache and retrying.
+                            throw CancellationError()
                         } catch {
                             // to force an update to the js file, we clear the cache and retry
                             _js = nil
