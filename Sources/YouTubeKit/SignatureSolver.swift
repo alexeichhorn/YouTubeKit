@@ -20,16 +20,23 @@ class SignatureSolver {
     // JavaScriptCore runs interpreted). Cache one solver per player-JS version so
     // subsequent videos reuse the context and the preprocessed player.
     private static let sharedLock = NSLock()
-    nonisolated(unsafe) private static var sharedSolver: SignatureSolver?
+    /// Small most-recently-used cache of solvers keyed by their player JS.
+    /// Bounded because each solver retains a JSContext and the ~2 MB player;
+    /// a session rarely uses more than a couple of player variants (e.g. web
+    /// vs TV/embed), so alternating between them still reuses each solver.
+    nonisolated(unsafe) private static var sharedSolvers: [SignatureSolver] = []
+    private static let maxCachedSolvers = 4
 
     static func shared(forJS js: String) throws -> SignatureSolver {
         sharedLock.lock()
         defer { sharedLock.unlock() }
-        // Compare the retained player JS directly — Swift string equality is
+        // Match on the retained player JS directly — Swift string equality is
         // pointer-identity-fast in the common case and avoids the hash-collision
         // risk of caching by hashValue (a collision would return a wrong solver).
-        if let cached = sharedSolver, cached.playerJS == js {
-            return cached
+        if let idx = sharedSolvers.firstIndex(where: { $0.playerJS == js }) {
+            let solver = sharedSolvers.remove(at: idx)
+            sharedSolvers.insert(solver, at: 0) // promote to most-recently-used
+            return solver
         }
         // A task can be cancelled while blocked on the lock; bail before the
         // expensive init rather than tying up the thread pool.
@@ -39,7 +46,10 @@ class SignatureSolver {
         let start = Date()
         let solver = try SignatureSolver(js: js)
         os_log("solver init took %.2fs", log: log, type: .default, Date().timeIntervalSince(start))
-        sharedSolver = solver
+        sharedSolvers.insert(solver, at: 0)
+        if sharedSolvers.count > maxCachedSolvers {
+            sharedSolvers.removeLast()
+        }
         return solver
     }
 
