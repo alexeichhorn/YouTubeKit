@@ -42,30 +42,22 @@ private final class URLSessionTaskCancellationBox: @unchecked Sendable {
 extension URLSession {
 
     func data(from url: URL) async throws -> (Data, URLResponse) {
-        let box = URLSessionTaskCancellationBox()
-        return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
-                let task = dataTask(with: url) { data, response, error in
-                    guard let data = data, let response = response else {
-                        let error = error ?? URLError(.unknown)
-                        return continuation.resume(throwing: error)
-                    }
-
-                    continuation.resume(returning: (data, response))
-                }
-                box.register(task)
-                task.resume()
-            }
-        } onCancel: {
-            box.cancel()
-        }
+        try await performCancellableDataTask { dataTask(with: url, completionHandler: $0) }
     }
 
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        try await performCancellableDataTask { dataTask(with: request, completionHandler: $0) }
+    }
+
+    /// Shared body for the async shims: bridge a completion-handler `dataTask` to
+    /// async, cancelling the underlying `URLSessionTask` when the Swift task is cancelled.
+    private func performCancellableDataTask(
+        _ makeTask: (@escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionDataTask
+    ) async throws -> (Data, URLResponse) {
         let box = URLSessionTaskCancellationBox()
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
-                let task = dataTask(with: request) { data, response, error in
+                let task = makeTask { data, response, error in
                     guard let data = data, let response = response else {
                         let error = error ?? URLError(.unknown)
                         return continuation.resume(throwing: error)
