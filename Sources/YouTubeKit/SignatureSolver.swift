@@ -20,19 +20,26 @@ class SignatureSolver {
     // JavaScriptCore runs interpreted). Cache one solver per player-JS version so
     // subsequent videos reuse the context and the preprocessed player.
     private static let sharedLock = NSLock()
-    nonisolated(unsafe) private static var sharedSolver: (jsHash: Int, solver: SignatureSolver)?
+    nonisolated(unsafe) private static var sharedSolver: SignatureSolver?
 
     static func shared(forJS js: String) throws -> SignatureSolver {
-        let hash = js.hashValue
         sharedLock.lock()
         defer { sharedLock.unlock() }
-        if let cached = sharedSolver, cached.jsHash == hash {
-            return cached.solver
+        // Compare the retained player JS directly — Swift string equality is
+        // pointer-identity-fast in the common case and avoids the hash-collision
+        // risk of caching by hashValue (a collision would return a wrong solver).
+        if let cached = sharedSolver, cached.playerJS == js {
+            return cached
+        }
+        // A task can be cancelled while blocked on the lock; bail before the
+        // expensive init rather than tying up the thread pool.
+        if #available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *) {
+            try Task.checkCancellation()
         }
         let start = Date()
         let solver = try SignatureSolver(js: js)
         os_log("solver init took %.2fs", log: log, type: .default, Date().timeIntervalSince(start))
-        sharedSolver = (hash, solver)
+        sharedSolver = solver
         return solver
     }
 
