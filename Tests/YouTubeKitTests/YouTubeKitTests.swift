@@ -261,7 +261,7 @@ final class YouTubeKitTests: XCTestCase {
             let metadata = try await youtube.metadata!
             XCTAssertEqual(metadata.title, "Le Maroc Vu du Ciel (Documentaire de Yann Arthus-Bertrand)")
             XCTAssertFalse(metadata.description.isEmpty)
-            XCTAssert([URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/sddefault.jpg")!, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/hqdefault.jpg")!].contains(metadata.thumbnail!.url))
+            XCTAssert([URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/sddefault.jpg")!, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/hqdefault.jpg")!, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/hq720.jpg")!].contains(metadata.thumbnail!.url))
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
@@ -273,7 +273,7 @@ final class YouTubeKitTests: XCTestCase {
             let metadata = try await youtube.metadata!
             XCTAssertEqual(metadata.title, "Le Maroc Vu du Ciel (Documentaire de Yann Arthus-Bertrand)")
             XCTAssertFalse(metadata.description.isEmpty)
-            XCTAssert([URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/sddefault.jpg")!, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/hqdefault.jpg")!].contains(metadata.thumbnail!.url))
+            XCTAssert([URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/sddefault.jpg")!, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/hqdefault.jpg")!, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/hq720.jpg")!].contains(metadata.thumbnail!.url))
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
