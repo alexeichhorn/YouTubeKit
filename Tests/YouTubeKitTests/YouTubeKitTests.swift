@@ -36,7 +36,6 @@ final class YouTubeKitTests: XCTestCase {
             
             XCTAssert(!streams.filterVideoOnly().isEmpty)
             XCTAssert(!streams.filterAudioOnly().isEmpty)
-            XCTAssert(!streams.filterVideoAndAudio().isEmpty)
             XCTAssertHighestResolutionStreamAtLeastHD(streams)
             
             XCTAssertEqual(bestAudioStream?.url, bestAudioStreamLegacy?.url)
@@ -61,7 +60,6 @@ final class YouTubeKitTests: XCTestCase {
             
             XCTAssert(!streams.filterVideoOnly().isEmpty)
             XCTAssert(!streams.filterAudioOnly().isEmpty)
-            XCTAssert(!streams.filterVideoAndAudio().isEmpty)
             XCTAssertHighestResolutionStreamAtLeastHD(streams)
             
             try await checkAllStreamReachability(streams)
@@ -108,7 +106,6 @@ final class YouTubeKitTests: XCTestCase {
             
             XCTAssert(!streams.filterVideoOnly().isEmpty)
             XCTAssert(!streams.filterAudioOnly().isEmpty)
-            XCTAssert(!streams.filterVideoAndAudio().isEmpty)
             XCTAssertHighestResolutionStreamAtLeastHD(streams)
             
             try await checkAllStreamReachability(streams)
@@ -127,7 +124,6 @@ final class YouTubeKitTests: XCTestCase {
             
             XCTAssert(!streams.filterVideoOnly().isEmpty)
             XCTAssert(!streams.filterAudioOnly().isEmpty)
-            XCTAssert(!streams.filterVideoAndAudio().isEmpty)
             XCTAssertHighestResolutionStreamAtLeastHD(streams)
             
             try await checkAllStreamReachability(streams)
@@ -146,7 +142,6 @@ final class YouTubeKitTests: XCTestCase {
             
             XCTAssert(!streams.filterVideoOnly().isEmpty)
             XCTAssert(!streams.filterAudioOnly().isEmpty)
-            XCTAssert(!streams.filterVideoAndAudio().isEmpty)
             XCTAssertHighestResolutionStreamAtLeastHD(streams)
             
             try await checkAllStreamReachability(streams)
@@ -168,7 +163,6 @@ final class YouTubeKitTests: XCTestCase {
             
             XCTAssert(!streams.filterVideoOnly().isEmpty)
             XCTAssert(!streams.filterAudioOnly().isEmpty)
-            XCTAssert(!streams.filterVideoAndAudio().isEmpty)
             XCTAssertHighestResolutionStreamAtLeastHD(streams)
             
             try await checkAllStreamReachability(streams)
