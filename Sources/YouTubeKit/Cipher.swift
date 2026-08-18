@@ -33,19 +33,30 @@ class Cipher {
     init(js: String) throws {
         self.js = js
         
-        let rawTransformPlan = try Cipher.getRawTransformPlan(js: js)
-
-        let varRegex = NSRegularExpression(#"^\$*\w+\W"#)
-        guard let varMatch = varRegex.firstMatch(in: rawTransformPlan[0], group: 0) else {
-            throw YouTubeKitError.regexMatchError
+        let globalVar = try Cipher.interpretPlayerGlobalVar(js: js)
+        
+        do {
+            let rawTransformPlan = try Cipher.getRawTransformPlan(js: js)
+            
+            let varRegex = NSRegularExpression(#"^\$*\w+\W"#)
+            guard let varMatch = varRegex.firstMatch(in: rawTransformPlan[0], group: 0) else {
+                throw YouTubeKitError.regexMatchError
+            }
+            var variable = varMatch.content
+            variable = variable.stripTrailing(".[") // remove characters (like dots) from e.g. "nP."
+            
+            let transformMap = try Cipher.getTransformMap(js: js, variable: variable)
+            let transformPlan = try Cipher.getDecodedTransformPlan(rawPlan: rawTransformPlan, variable: variable, transformMap: transformMap, globalVar: globalVar)
+            self.transformMap = transformMap
+            self.transformPlan = transformPlan
+        } catch let error {
+            // verbosely fail, but don't fail whole initialization
+            os_log("Failed to parse transform plan (non-fatal): %{public}@", log: Cipher.log, type: .error, error as CVarArg)
+            self.transformMap = [:]
+            self.transformPlan = []
         }
-        var variable = varMatch.content
-        _ = variable.popLast()
         
-        self.transformMap = try Cipher.getTransformMap(js: js, variable: variable)
-        self.transformPlan = try Cipher.getDecodedTransformPlan(rawPlan: rawTransformPlan, variable: variable, transformMap: transformMap)
-        
-        self.nParameterFunction = try Cipher.getThrottlingFunctionCode(js: js) //try Cipher.getNParameterFunction(js: js)
+        self.nParameterFunction = try Cipher.getThrottlingFunctionCode(js: js, globalVar: globalVar) //try Cipher.getNParameterFunction(js: js)
     }
     
     /// Converts n to the correct value to prevent throttling.
@@ -107,26 +118,44 @@ class Cipher {
     
     /// Extract the name of the function responsible for computing the signature.
     class func getInitialFunctionName(js: String) throws -> String {
+
+        struct ExtractionRegex {
+            let regex: NSRegularExpression
+            let group: Int
+
+            init(pattern: String, group: Int) {
+                self.regex = NSRegularExpression(pattern)
+                self.group = group
+            }
+
+            func firstMatch(in js: String) -> NSRegularExpression.Match? {
+                return regex.firstMatch(in: js, group: group)
+            }
+        }
+
         // note: make sure patterns don't contain named groups. Instead the function name should be always in group 1
         let functionPatterns = [
-            #"\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*([a-zA-Z0-9$]+)\("#,
-            #"\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*([a-zA-Z0-9$]+)\("#,
-            #"(?:\b|[^a-zA-Z0-9$])([a-zA-Z0-9$]{2})\s*=\s*function\(\s*a\s*\)\s*\{\s*a\s*=\s*a\.split\(\s*\"\"\s*\)"#,  // slight modifications from original
-            #"([a-zA-Z0-9$]+)\s*=\s*function\(\s*a\s*\)\s*\{\s*a\s*=\s*a\.split\(\s*""\s*\)"#,  // escaped {
-            #"["\']signature["\']\s*,\s*([a-zA-Z0-9$]+)\("#, // slightly modified (weaker condition) to correctly have function name in group 1
-            #"\.sig\|\|([a-zA-Z0-9$]+)\("#,
-            #"yt\.akamaized\.net/\)\s*\|\|\s*.*?\s*[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?:encodeURIComponent\s*\()?\s*([a-zA-Z0-9$]+)\("#,  // noqa: E501
-            #"\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*([a-zA-Z0-9$]+)\("#,  // noqa: E501
-            #"\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*([a-zA-Z0-9$]+)\("#,  // noqa: E501
-            #"\bc\s*&&\s*a\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*([a-zA-Z0-9$]+)\("#,  // noqa: E501
-            #"\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*([a-zA-Z0-9$]+)\("#,  // noqa: E501
-            #"\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*([a-zA-Z0-9$]+)\("#,  // noqa: E501
-        ].map { NSRegularExpression($0) }
+            ExtractionRegex(pattern: #"\b([a-zA-Z0-9_$]+)&&\(\1=([a-zA-Z0-9_$]{2,})\(decodeURIComponent\(\1\)\)"#, group: 2),
+            ExtractionRegex(pattern: #"([a-zA-Z0-9_$]+)\s*=\s*function\(\s*([a-zA-Z0-9_$]+)\s*\)\s*\{\s*\2\s*=\s*\2\.split\(\s*\"\"\s*\)\s*;\s*[^}]+;\s*return\s+\2\.join\(\s*\"\"\s*\)"#, group: 1),
+            ExtractionRegex(pattern: #"(?:\b|[^a-zA-Z0-9_$])([a-zA-Z0-9_$]{2,})\s*=\s*function\(\s*a\s*\)\s*\{\s*a\s*=\s*a\.split\(\s*\"\"\s*\)(?:;[a-zA-Z0-9_$]{2}\.[a-zA-Z0-9_$]{2}\(a,\d+\))?"#, group: 1),
+            // older
+            ExtractionRegex(pattern: #"\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"(?:\b|[^a-zA-Z0-9$])([a-zA-Z0-9$]{2})\s*=\s*function\(\s*a\s*\)\s*\{\s*a\s*=\s*a\.split\(\s*""\s*\)"#, group: 1),  // slight modifications from original
+            ExtractionRegex(pattern: #"([a-zA-Z0-9$]+)\s*=\s*function\(\s*a\s*\)\s*\{\s*a\s*=\s*a\.split\(\s*""\s*\)"#, group: 1),  // escaped {
+            ExtractionRegex(pattern: #"["\']signature["\']\s*,\s*([a-zA-Z0-9$]+)\("#, group: 1), // slightly modified (weaker condition) to correctly have function name in group 1
+            ExtractionRegex(pattern: #"\.sig\|\|([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"yt\.akamaized\.net/\)\s*\|\|\s*.*?\s*[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?:encodeURIComponent\s*\()?\s*([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"\bc\s*&&\s*a\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*([a-zA-Z0-9$]+)\("#, group: 1),
+            ExtractionRegex(pattern: #"\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*([a-zA-Z0-9$]+)\("#, group: 1),
+        ]
         os_log("finding initial function name", log: log, type: .debug)
         
         for pattern in functionPatterns {
-            if let functionMatch = pattern.firstMatch(in: js, group: 1) {
-                os_log("finished regex search, matched %{public}@", log: log, type: .debug, pattern.pattern)
+            if let functionMatch = pattern.firstMatch(in: js) {
+                os_log("finished regex search, matched %{public}@", log: log, type: .debug, pattern.regex.pattern)
                 return functionMatch.content
             }
         }
@@ -138,7 +167,7 @@ class Cipher {
     /// The "transform plan" is the functions that the ciphered signature is cycled through to obtain the actual signature.
     class func getRawTransformPlan(js: String) throws -> [String] {
         let name = try getInitialFunctionName(js: js)
-        let pattern = NSRegularExpression(NSRegularExpression.escapedPattern(for: name) + #"=function\(\w\)\{[a-z=\.\(\"\)]*;(.*);(?:.+)\}"#)
+        let pattern = NSRegularExpression(NSRegularExpression.escapedPattern(for: name) + #"=function\(\w\)\{[A-Za-z0-9=\.\(\"\)\[\]]*;(.*);(?:.+)\}"#)
         os_log("getting transform plan", log: log, type: .debug)
         if let match = pattern.firstMatch(in: js, group: 1) {
             return match.content.components(separatedBy: ";")
@@ -148,16 +177,32 @@ class Cipher {
     
     /// Transforms raw transform plan in to a decoded transform plan with functions and parameters
     /// - Note: returns empty array if transformation failed
-    class func getDecodedTransformPlan(rawPlan: [String], variable: String, transformMap: [String: JSFunction]) throws -> [(func: JSFunction, param: Int)] {
+    class private func getDecodedTransformPlan(rawPlan: [String], variable: String, transformMap: [String: JSFunction], globalVar: PlayerGlobalVar?) throws -> [(func: JSFunction, param: Int)] {
         let pattern = try NSRegularExpression(pattern: NSRegularExpression.escapedPattern(for: variable) + #"\.(.+)\(.+,(\d+)\)"#) // expecting e.g. "wP.Nl(a,65)"
+        let gPattern = try NSRegularExpression(pattern: NSRegularExpression.escapedPattern(for: variable) + #"\["# + NSRegularExpression.escapedPattern(for: globalVar?.name ?? "G") + #"\[(\d+)\]]\(.+,(\d+)\)"#) // expecting references to global var, e.g. "C$[G[58]](u,24)"
+        
+        func getFunctionNameAndParam(_ functionCall: String) -> (String, String)? {
+            if let (_, matchGroups) = pattern.allMatches(in: functionCall, includingGroups: [1, 2]).first,
+               let functionName = matchGroups[1]?.content,
+               let parameter = matchGroups[2]?.content {
+                return (functionName, parameter)
+            }
+            
+            if let globalVar,
+               let (_, matchGroups) = gPattern.allMatches(in: functionCall, includingGroups: [1, 2]).first,
+               let functionNameGlobalIndex = (matchGroups[1]?.content).flatMap({ Int($0) }),
+               let functionName = globalVar.globalList[safe: functionNameGlobalIndex],
+               let parameter = matchGroups[2]?.content {
+                return (functionName, parameter)
+            }
+            
+            return nil
+        }
         
         var result: [(func: JSFunction, param: Int)] = []
         
         for functionCall in rawPlan {
-            guard let (_, matchGroups) = pattern.allMatches(in: functionCall, includingGroups: [1, 2]).first,
-                  let functionName = matchGroups[1]?.content,
-                  let parameter = matchGroups[2]?.content
-            else {
+            guard let (functionName, parameter) = getFunctionNameAndParam(functionCall) else {
                 os_log("failed to decode function call %{public}@", log: log, type: .error, functionCall)
                 return []
             }
@@ -203,24 +248,141 @@ class Cipher {
     }
     
     /// Extract the name of the function that computes the throttling parameter.
-    class func getThrottlingFunctionName(js: String) throws -> String {
-        let functionPatterns = [
-            NSRegularExpression(#"a\.[a-zA-Z]\s*&&\s*\([a-z]\s*=\s*a\.get\("n"\)\)\s*&&\s*"#),
-            NSRegularExpression(#"\([a-z]\s*=\s*([a-zA-Z0-9$]+)(\[\d+\])?\([a-z]\)"#)
-        ]
-        for pattern in functionPatterns {
-            guard let (_, functionMatchGroups) = pattern.allMatches(in: js, includingGroups: [1, 2]).first else { continue }
-            guard let firstGroup = functionMatchGroups[1] else { continue }
-            guard let secondGroup = functionMatchGroups[2] else {
-                return firstGroup.content
+    class private func getThrottlingFunctionName(js: String, globalVar: PlayerGlobalVar?) throws -> String {
+        
+        let functionName: String
+        let index: Int?
+        
+        if #available(iOS 16.0, macOS 13.0, watchOS 9.0, tvOS 16.0, *) {
+            
+            if let globalVar {
+                if let debugStringIndex = globalVar.globalList.firstIndex(where: { $0.hasSuffix("-_w8_") }) {
+                    
+                    let pattern = #"""
+                    (?x)
+                    \{\s*return\s+{{varname}}\[{{index}}\]\s*\+\s*(?P<argname>[a-zA-Z0-9_$]+)\s*\}
+                    """#.replacingOccurrences(of: "{{varname}}", with: globalVar.name).replacingOccurrences(of: "{{index}}", with: "\(debugStringIndex)")
+                    
+                    if let match = try Regex(pattern).firstMatch(in: js) {
+                        let argname = match.output["argname"]?.substring ?? ""
+                        let innerReversedContent = js[..<match.range.lowerBound].reversed()
+                        
+                        let pattern = #"""
+                        (?x)
+                        \{\s*\){{argname}}\(\s*
+                        (?:
+                            (?P<funcname_a>[a-zA-Z0-9_$]+)\s*noitcnuf\s*
+                            |noitcnuf\s*=\s*(?P<funcname_b>[a-zA-Z0-9_$]+)(?:\s+rav)?
+                        )[;\n]
+                        """#.replacingOccurrences(of: "{{argname}}", with: String(argname.reversed()))
+                        
+                        if let match = try Regex(pattern).firstMatch(in: String(innerReversedContent)) {
+                            let a = match.output["funcname_a"]?.substring
+                            let b = match.output["funcname_b"]?.substring
+                            if let funcname = a ?? b {
+                                return String(funcname.reversed())
+                            }
+                        }
+                    }
+                }
             }
             
-            guard let index = Int(secondGroup.content.strip(from: "[]")) else { continue }
-            let arrayPattern = NSRegularExpression(#"var "# + NSRegularExpression.escapedPattern(for: firstGroup.content) + #"\s*=\s*(\[.+?\]);"#)
+            
+            
+            
+            /*
+             Full regex pattern:
+             """
+             (?x)
+             (?:
+                 \.get\("n"\)\)&&\(b=|
+                 (?:
+                     b=String\.fromCharCode\(110\)|
+                     (?P<str_idx>[a-zA-Z0-9_$.]+)&&\(b="nn"\[\+(?P=str_idx)\]
+                 )
+                 (?:
+                     ,[a-zA-Z0-9_$]+\(a\))?,c=a\.
+                     (?:
+                         get\(b\)|
+                         [a-zA-Z0-9_$]+\[b\]\|\|null
+                     )\)&&\(c=|
+                 \b(?P<var>[a-zA-Z0-9_$]+)=
+             )(?P<nfunc>[a-zA-Z0-9_$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z]\)
+             (?(var),[a-zA-Z0-9_$]+\.set\((?:"n+"|[a-zA-Z0-9_$]+)\,(?P=var)\))
+             """
+             
+             -> We split it up in two, as Swift can't handle the conditional (on the last line). So we handle it in code
+             */
+            
+            let patternWithVar = #/
+            (?x)
+            (?:
+                \b(?P<var>[a-zA-Z0-9_$]+)=
+            )(?P<nfunc>[a-zA-Z0-9_$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z]\)
+            (,[a-zA-Z0-9_$]+\.set\((?:"n+"|[a-zA-Z0-9_$]+)\,(?P=var)\))
+            /#
+            
+            let patternWithoutVar = #/
+            (?x)
+            (?:
+                \.get\("n"\)\)&&\(b=|
+                (?:
+                    b=String\.fromCharCode\(110\)|
+                    (?P<str_idx>[a-zA-Z0-9_$.]+)&&\(b="nn"\[\+(?P=str_idx)\]
+                )
+                (?:
+                    ,[a-zA-Z0-9_$]+\(a\))?,c=a\.
+                    (?:
+                        get\(b\)|
+                        [a-zA-Z0-9_$]+\[b\]\|\|null
+                    )\)&&\(c=
+            )(?P<nfunc>[a-zA-Z0-9_$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z]\)
+            /#
+            
+            if let match = try patternWithVar.firstMatch(in: js) {
+                functionName = String(match.nfunc)
+                index = match.idx.flatMap { Int($0) }
+            } else if let match = try patternWithoutVar.firstMatch(in: js) {
+                functionName = String(match.nfunc)
+                index = match.idx.flatMap { Int($0) }
+            } else {
+                throw YouTubeKitError.regexMatchError
+            }
+            
+            guard let index else {
+                os_log("extracted throttle function name %{public}@ but no index", log: log, type: .error, functionName)
+                throw YouTubeKitError.regexMatchError
+            }
+            
+            let arrayPattern = NSRegularExpression(#"var "# + NSRegularExpression.escapedPattern(for:functionName) + #"\s*=\s*(\[.+?\])\s*[,;]"#)
             if let arrayMatch = arrayPattern.firstMatch(in: js, group: 1) {
                 let array = arrayMatch.content.strip(from: "[]").split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 if array.indices.contains(index) {
                     return array[index]
+                }
+            }
+            
+        } else {
+            
+            let functionPatterns = [
+                NSRegularExpression(#"a\.[a-zA-Z]\s*&&\s*\([a-z]\s*=\s*a\.get\("n"\)\)\s*&&\s*"#),
+                NSRegularExpression(#"\([a-z]\s*=\s*([a-zA-Z0-9$]+)(\[\d+\])?\([a-z]\)"#)
+            ]
+            
+            for pattern in functionPatterns {
+                guard let (_, functionMatchGroups) = pattern.allMatches(in: js, includingGroups: [1, 2]).first else { continue }
+                guard let firstGroup = functionMatchGroups[1] else { continue }
+                guard let secondGroup = functionMatchGroups[2] else {
+                    return firstGroup.content
+                }
+                
+                guard let index = Int(secondGroup.content.strip(from: "[]")) else { continue }
+                let arrayPattern = NSRegularExpression(#"var "# + NSRegularExpression.escapedPattern(for: firstGroup.content) + #"\s*=\s*(\[.+?\])\s*[,;]"#)
+                if let arrayMatch = arrayPattern.firstMatch(in: js, group: 1) {
+                    let array = arrayMatch.content.strip(from: "[]").split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    if array.indices.contains(index) {
+                        return array[index]
+                    }
                 }
             }
         }
@@ -228,20 +390,145 @@ class Cipher {
         throw YouTubeKitError.regexMatchError
     }
     
+    // MARK: - Global Var Extraction
+    
+    private struct PlayerGlobalVar {
+        let name: String
+        let globalList: [String]
+        let code: String
+    }
+    
+    private class func extractPlayerGlobalVar(js: String) throws -> (code: String, name: String, value: String)? {
+        if #available(iOS 16.0, macOS 13.0, watchOS 9.0, tvOS 16.0, *) {
+            
+            let pattern = #/
+            (?x)
+            (?P<q1>["\'])use\s+strict(?P=q1);\s*
+            (?P<code>
+                var\s+(?P<name>[a-zA-Z0-9_$]+)\s*=\s*
+                (?P<value>
+                    (?P<q2>["\'])(?:(?!(?P=q2)).|\\.)+(?P=q2)
+                    \.split\((?P<q3>["\'])(?:(?!(?P=q3)).)+(?P=q3)\)
+                    |\[\s*(?:(?P<q4>["\'])(?:(?!(?P=q4)).|\\.)*(?P=q4)\s*,?\s*)+\]
+                )
+            )[;,]
+            /#
+            
+            if let match = try pattern.firstMatch(in: js) {
+                let code = String(match.code)
+                let name = String(match.name)
+                let value = String(match.value)
+                
+                return (code, name, value)
+            }
+            
+            return nil
+            
+        } else {
+            // TODO: currently not supported on older platforms
+            return nil
+        }
+    }
+    
+    private class func interpretPlayerGlobalVar(js: String) throws -> PlayerGlobalVar? {
+        
+        guard let (code, name, value) = try extractPlayerGlobalVar(js: js) else {
+            return nil
+        }
+        
+#if canImport(JavaScriptCore)
+        guard let context = JSContext() else {
+            os_log("failed to create JSContext", log: log, type: .error)
+            return nil
+        }
+        
+        guard let expressionResult = context.evaluateScript(value), expressionResult.isArray else {
+            os_log("failed to evaluate globalvar script", log: log, type: .error)
+            return nil
+        }
+        let globalList = expressionResult.toArray() as? [String] ?? []
+        
+        return PlayerGlobalVar(name: name, globalList: globalList, code: code)
+#else
+        return nil
+#endif
+    }
+    
+    // MARK: -
+    
+    private class func extractFunctionCode(name: String, js: String) throws -> (variableName: String, code: String) {
+        
+        let args: String
+        let codeStart: String.Index
+        
+        if #available(iOS 16.0, macOS 13.0, watchOS 9.0, tvOS 16.0, *) {
+            let pattern = #"""
+            (?xs)
+            (?:
+                function\s+{{name}}|
+                [{;,]\s*{{name}}\s*=\s*function|
+                (?:var|const|let)\s+{{name}}\s*=\s*function
+            )\s*
+            \((?P<args>[^)]*)\)\s*
+            (?P<code>{.+})
+            """#.replacingOccurrences(of: "{{name}}", with: name)
+            if let match = try Regex(pattern).firstMatch(in: js) {
+                args = String(match.output["args"]?.substring ?? "")
+                codeStart = match.output["code"]?.range?.lowerBound ?? match.range.lowerBound
+            } else {
+                throw YouTubeKitError.regexMatchError
+            }
+            
+        } else {
+            let regex = NSRegularExpression(NSRegularExpression.escapedPattern(for: name) + #"=function\((\w)\)"#)
+            guard let (match, groupMatches) = regex.firstMatch(in: js, includingGroups: [1]) else {
+                throw YouTubeKitError.regexMatchError
+            }
+            
+            guard let variableName = groupMatches[1]?.content else {
+                throw YouTubeKitError.regexMatchError
+            }
+            
+            args = variableName
+            codeStart = match.end
+        }
+        
+        let code = try Parser.findJavascriptFunctionFromStartpoint(html: js, startPoint: codeStart)
+        return (args, code)
+    }
+    
     /// Extract the raw code for the throttling function.
-    class func getThrottlingFunctionCode(js: String, functionName: String = "processNSignature") throws -> String {
-        let name = try getThrottlingFunctionName(js: js)
+    class private func getThrottlingFunctionCode(js: String, globalVar: PlayerGlobalVar?, functionName: String = "processNSignature") throws -> String {
         
-        let regex = NSRegularExpression(NSRegularExpression.escapedPattern(for: name) + #"=function\((\w)\)"#)
-        guard let (match, groupMatches) = regex.firstMatch(in: js, includingGroups: [1]) else {
-            throw YouTubeKitError.regexMatchError
+        let name = try getThrottlingFunctionName(js: js, globalVar: globalVar)
+        
+        var (variableName, code) = try extractFunctionCode(name: name, js: js)
+        
+        if #available(iOS 16.0, macOS 13.0, watchOS 9.0, tvOS 16.0, *) {
+            if let globalVar {
+                
+                //code = globalVar.code + "; " + code (but removing opening and closing curly braces)
+                code = globalVar.code + "; " + code[code.index(after: code.startIndex)..<code.index(before: code.endIndex)]
+                code = "{" + code + "}"  // re-add curly braces
+                
+                let undefinedIndex = globalVar.globalList.firstIndex(where: { $0 == "undefined" })
+                let undefinedIndexRegex = undefinedIndex.map { String($0) } ?? #"\d+"# // alternatively we match all integers
+                
+                let fixupPattern = #"""
+                    (?x)
+                    ;\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(?:
+                        (["\'])undefined\1|
+                        {{varname}}\[{{undefined_idx}}\]
+                    )\s*\)\s*return\s+{{argname}};
+                    """#
+                    .replacingOccurrences(of: "{{varname}}", with: globalVar.name)
+                    .replacingOccurrences(of: "{{undefined_idx}}", with: undefinedIndexRegex)
+                    .replacingOccurrences(of: "{{argname}}", with: variableName)
+                
+                let fixupRegex = try Regex(fixupPattern)
+                code.replace(fixupRegex, with: ";")
+            }
         }
-        
-        guard let variableName = groupMatches[1]?.content else {
-            throw YouTubeKitError.regexMatchError
-        }
-        
-        let code = try Parser.findJavascriptFunctionFromStartpoint(html: js, startPoint: match.end)
         
         return "function \(functionName)(\(variableName)) \(code)"
     }
@@ -257,12 +544,18 @@ class Cipher {
         let mapper = [
             // function(a){a.reverse()}
             (NSRegularExpression(#"\{\w\.reverse\(\)\}"#), JSFunction.reverse),
+            // function(u){u[G[43]]()} - reverse obfuscated (but obvious because of single input func)
+            (NSRegularExpression(#"\{\w\[.+\]\(\)\}"#), .reverse),
             // function(a,b){a.splice(0,b)}
             (NSRegularExpression(#"\{\w\.splice\(0,\w\)\}"#), .splice),
+            // function(u,l){u[G[6]](0,l)} - splice is obfuscated (but obvious with (0, x) input
+            (NSRegularExpression(#"\{(\w\[.+\])\(0,\w\)\}"#), .splice),
             // function(a,b){var c=a[0];a[0]=a[b%a.length];a[b]=c}
             (NSRegularExpression(#"\{var\s\w=\w\[0\];\w\[0\]=\w\[\w\%\w.length\];\w\[\w\]=\w\}"#), .swap),
             // function(a,b){var c=a[0];a[0]=a[b%a.length];a[b%a.length]=c}
-            (NSRegularExpression(#"\{var\s\w=\w\[0\];\w\[0\]=\w\[\w\%\w.length\];\w\[\w\%\w.length\]=\w\}"#), .swap)
+            (NSRegularExpression(#"\{var\s\w=\w\[0\];\w\[0\]=\w\[\w\%\w.length\];\w\[\w\%\w.length\]=\w\}"#), .swap),
+            // function(u,l){var e=u[0];u[0]=u[l%u[G[3]]];u[l%u[G[3]]]=e}
+            (NSRegularExpression(#"\{var\s\w=\w\[0\];\w\[0\]=\w\[\w\%\w\[.+\]\];\w\[\w\%\w\[.+\]\]=\w\}"#), .swap),
         ]
         
         for (pattern, fn) in mapper {

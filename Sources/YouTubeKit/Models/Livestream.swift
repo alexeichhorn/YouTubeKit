@@ -7,9 +7,9 @@
 
 import Foundation
 
-public struct Livestream {
+public struct Livestream: Sendable {
     
-    public enum StreamType {
+    public enum StreamType: Sendable {
         case hls
     }
     

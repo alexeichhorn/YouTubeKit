@@ -24,11 +24,34 @@ class Extraction {
     }
     
     
+    /// Allows to override player id in case we have a (currently) unsolvable in the future
+    private static let PLAYER_ID_OVERRIDE: String? = nil
+    private static let PLAYER_STS_OVERRIDE: Int? = nil
+
     /// Get the base JavaScript url
     class func jsURL(html: String) throws -> String {
         let baseURL = try (try? getYTPlayerConfig(html: html).assets?.js)
                            ?? (try getYTPlayerJS(html: html))
-        return "https://youtube.com" + baseURL
+
+        // Replace potentially broken player ID with known working one
+        // Format: /s/player/{PLAYER_ID}/{VARIANT_PATH}
+        let playerIDPattern = NSRegularExpression(#"(/s/player/)([a-zA-Z0-9_]+)(/.*)"#)
+        if let PLAYER_ID_OVERRIDE,
+           let (_, groupMatches) = playerIDPattern.firstMatch(in: baseURL, includingGroups: [1, 2, 3]),
+           let prefix = groupMatches[1]?.content,
+           let _ = groupMatches[2]?.content,
+           let suffix = groupMatches[3]?.content {
+            let fixedURL = prefix + PLAYER_ID_OVERRIDE + suffix
+            guard let normalizedURL = URL(string: fixedURL, relativeTo: URL(string: "https://youtube.com"))?.absoluteURL else {
+                throw YouTubeKitError.regexMatchError
+            }
+            return normalizedURL.absoluteString
+        }
+
+        guard let normalizedURL = URL(string: baseURL, relativeTo: URL(string: "https://youtube.com"))?.absoluteURL else {
+            throw YouTubeKitError.regexMatchError
+        }
+        return normalizedURL.absoluteString
     }
     
     /// Get the YouTube player base JavaScript path.
@@ -112,16 +135,68 @@ class Extraction {
         return (nil, [nil])
     }
     
-    /// Extracts the signature timestamp (sts) from javascript. 
+    /// Extracts the signature timestamp (sts) from javascript.
     /// Used to pass into InnerTube to tell API what sig/player is in use.
     /// - parameter js: The javascript contents of the watch page
     /// - returns: The signature timestamp (sts) or nil if not found
     class func extractSignatureTimestamp(fromJS js: String) -> Int? {
+        // Return hardcoded STS that matches overridden player
+        if let PLAYER_STS_OVERRIDE {
+            return PLAYER_STS_OVERRIDE
+        }
+
         let pattern = NSRegularExpression(#"(?:signatureTimestamp|sts)\s*:\s*([0-9]{5})"#)
         if let match = pattern.firstMatch(in: js, group: 1) {
             return Int(match.content)
         }
         return nil
+    }
+    
+    struct YtCfg: Decodable {
+        let VISITOR_DATA: String?
+        let INNERTUBE_CONTEXT: Context?
+        let WEB_PLAYER_CONTEXT_CONFIGS: WebPlayerContextConfigs?
+        
+        struct Context: Decodable {
+            let client: Client
+            
+            struct Client: Decodable {
+                let visitorData: String?
+                let userAgent: String?
+            }
+        }
+
+        struct WebPlayerContextConfigs: Decodable {
+            let WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER: EmbeddedPlayer?
+
+            struct EmbeddedPlayer: Decodable {
+                let encryptedHostFlags: String?
+            }
+        }
+        
+        var visitorData: String? {
+            VISITOR_DATA ?? INNERTUBE_CONTEXT?.client.visitorData
+        }
+        
+        var userAgent: String? {
+            INNERTUBE_CONTEXT?.client.userAgent
+        }
+
+        var embeddedPlayerEncryptedHostFlags: String? {
+            WEB_PLAYER_CONTEXT_CONFIGS?.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER?.encryptedHostFlags
+        }
+    }
+    
+    class func extractYtCfg(from html: String) throws -> YtCfg {
+        if #available(iOS 16.0, macOS 13.0, watchOS 9.0, tvOS 16.0, *) {
+            let regex = #/ytcfg\.set\s*\(\s*(?={)/#
+            let cfg = try parseForObject(YtCfg.self, html: html, precedingRegex: regex)
+            return cfg
+        } else {
+            let regex = NSRegularExpression(#"ytcfg\.set\s*\(\s*"#)
+            let cfg = try parseForObject(YtCfg.self, html: html, precedingRegex: regex)
+            return cfg
+        }
     }
     
     /// Parses input html to find the end of a JavaScript object.
@@ -133,6 +208,26 @@ class Extraction {
         
         for result in results {
             let startIndex = result.end
+            do {
+                return try parseForObjectFromStartpoint(type, html: html, startPoint: startIndex)
+            } catch {
+                
+            }
+        }
+        
+        throw YouTubeKitError.htmlParseError
+    }
+    
+    /// Parses input html to find the end of a JavaScript object.
+    /// - parameter html: HTML to be parsed for an object.
+    /// - parameter precedingRegex: Regex to find the string preceding the object.
+    /// - returns: A decodable object
+    @available(iOS 16.0, macOS 13.0, watchOS 9.0, tvOS 16.0, *)
+    class func parseForObject<T: Decodable>(_ type: T.Type, html: String, precedingRegex: Regex<Substring>) throws -> T {
+        let results = html.matches(of: precedingRegex)
+        
+        for result in results {
+            let startIndex = result.endIndex
             do {
                 return try parseForObjectFromStartpoint(type, html: html, startPoint: startIndex)
             } catch {
@@ -284,8 +379,10 @@ class Extraction {
             if data.url == nil {
                 if let signatureCipher = data.signatureCipher {
                     let cipherURL = parseQueryString(signatureCipher)
-                    formats[i].url = cipherURL["url"]?.first
-                    formats[i].s = cipherURL["s"]?.first
+                    // URL-decode the values (they come percent-encoded from signatureCipher)
+                    formats[i].url = cipherURL["url"]?.first?.removingPercentEncoding ?? cipherURL["url"]?.first
+                    formats[i].s = cipherURL["s"]?.first?.removingPercentEncoding ?? cipherURL["s"]?.first
+                    formats[i].sp = cipherURL["sp"]?.first?.removingPercentEncoding ?? cipherURL["sp"]?.first
                 }
             }
         }
@@ -294,61 +391,105 @@ class Extraction {
         return formats
     }
     
+#if canImport(JavaScriptCore)
     /// apply the decrypted signature to the stream manifest
     class func applySignature(streamManifest: inout [InnerTube.StreamingData.Format], videoInfo: InnerTube.VideoInfo, js: String) throws {
-        var cipher = ThrowingLazy(try Cipher(js: js))
-        
+        let solver = try SignatureSolver(js: js)
+
+        var sigInputs: [String] = []
+        var nInputs: [String] = []
+
+        // First pass: collect all inputs
+        for stream in streamManifest {
+            if let url = stream.url {
+                guard let urlComponents = URLComponents(string: url) else { continue }
+
+                let signatureFound = url.contains("signature") || (stream.s == nil && (url.contains("&sig=") || url.contains("&lsig=")))
+
+                if !signatureFound {
+                    if let cipheredSignature = stream.s {
+                        sigInputs.append(cipheredSignature)
+                    }
+                }
+
+                if let initialN = urlComponents.queryItems?["n"] {
+                    nInputs.append(initialN)
+                }
+            }
+        }
+
+        // Batch solve all signatures and n-parameters
+        let request = SignatureSolver.SolveRequest(nInputs: nInputs, sigInputs: sigInputs)
+        let response = try solver.batchSolve(request: request)
+
         var invalidStreamIndices = [Int]()
-        
+
+        // Second pass: apply results
         for (i, stream) in streamManifest.enumerated() {
             if let url = stream.url {
                 guard var urlComponents = URLComponents(string: url) else { continue } // TODO: fail differently
-                
+
                 if urlComponents.queryItems == nil {
                     urlComponents.queryItems = []
                 }
-                
+
                 let signatureFound = url.contains("signature") || (stream.s == nil && (url.contains("&sig=") || url.contains("&lsig=")))
-                
+
                 if !signatureFound {
-                    
+
                     // apply "s" signature
                     if let cipheredSignature = stream.s {
-                        // Remove the stream from `streamManifest` for now, as signature extraction currently doesn't work most of time
-                        invalidStreamIndices.append(i)
-                        continue // Skip the rest of the code as we are removing this stream
-                        
-                        let signature = try cipher.value.getSignature(cipheredSignature: cipheredSignature)
-                        
+                        guard let signature = response.sigMap[cipheredSignature] else {
+                            os_log("failed to decrypt signature for itag=%{public}i, removing stream", log: log, type: .error, stream.itag)
+                            invalidStreamIndices.append(i)
+                            continue
+                        }
+
                         os_log("finished descrambling signature for itag=%{public}i", log: log, type: .debug, stream.itag)
-                        
-                        urlComponents.queryItems?["sig"] = signature
+
+                        // Use sp parameter name from signatureCipher, default to "signature" if not present
+                        let paramName = stream.sp ?? "signature"
+                        urlComponents.queryItems?[paramName] = signature
                     }
-                    
+
                 } else {
                     // os_log("signature found, skip decipher", log: log, type: .debug)
                 }
-                
-                
+
+
                 // apply throttling "n" signature
                 if let initialN = urlComponents.queryItems?["n"] {
-                    let newN = try cipher.value.calculateN(initialN: initialN)
+                    guard let newN = response.nMap[initialN] else {
+                        invalidStreamIndices.append(i)
+                        continue
+                    }
                     urlComponents.queryItems?["n"] = newN
-                    
+
                     if newN.isEmpty {
                         invalidStreamIndices.append(i)
                     }
                 }
-                
-                
+
+
                 let url = urlComponents.url?.absoluteString ?? url
                 streamManifest[i].url = url
             }
         }
-        
+
         // Remove invalid streams
         for index in invalidStreamIndices.reversed() {
             streamManifest.remove(at: index)
+        }
+    }
+#endif
+    
+    /// Filter out all audio streams that are not original language (i.e. dubbed)
+    class func filterOutDubbedAudio(streamManifest: [InnerTube.StreamingData.Format]) -> [InnerTube.StreamingData.Format] {
+        streamManifest.filter { stream in
+            if let audioTrack = stream.audioTrack {
+                return audioTrack.displayName.lowercased().hasSuffix("original")
+            }
+            return true
         }
     }
     

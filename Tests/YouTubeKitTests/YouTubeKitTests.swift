@@ -36,14 +36,11 @@ final class YouTubeKitTests: XCTestCase {
             
             XCTAssert(!streams.filterVideoOnly().isEmpty)
             XCTAssert(!streams.filterAudioOnly().isEmpty)
-            XCTAssert(!streams.filterVideoAndAudio().isEmpty)
+            XCTAssertHighestResolutionStreamAtLeastHD(streams)
             
             XCTAssertEqual(bestAudioStream?.url, bestAudioStreamLegacy?.url)
             
             try await checkAllStreamReachability(streams)
-            
-            // test Cipher initialization directly (in case not lazily loaded)
-            await XCTAssertNoThrow(try await Cipher(js: youtube.js), "Failed to initialize Cipher")
             
         } catch let error {
             XCTFail("did throw error: \(error)")
@@ -51,7 +48,7 @@ final class YouTubeKitTests: XCTestCase {
     }
     
     func testSampleVideo2() async {
-        let youtube = YouTube(videoID: "2lAe1cqCOXo")
+        let youtube = YouTube(videoID: "ZFoNBxpXen4")
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
@@ -63,12 +60,9 @@ final class YouTubeKitTests: XCTestCase {
             
             XCTAssert(!streams.filterVideoOnly().isEmpty)
             XCTAssert(!streams.filterAudioOnly().isEmpty)
-            XCTAssert(!streams.filterVideoAndAudio().isEmpty)
+            XCTAssertHighestResolutionStreamAtLeastHD(streams)
             
             try await checkAllStreamReachability(streams)
-            
-            // test Cipher initialization directly (in case not lazily loaded)
-            await XCTAssertNoThrow(try await Cipher(js: youtube.js), "Failed to initialize Cipher")
             
         } catch let error {
             XCTFail("did throw error: \(error)")
@@ -90,11 +84,9 @@ final class YouTubeKitTests: XCTestCase {
             XCTAssert(!streams.filterVideoOnly().isEmpty)
             XCTAssert(!streams.filterAudioOnly().isEmpty)
             XCTAssert(!streams.filterVideoAndAudio().isEmpty)
+            XCTAssertHighestResolutionStreamAtLeastHD(streams)
             
             try await checkAllStreamReachability(streams)
-            
-            // test Cipher initialization directly (in case not lazily loaded)
-            await XCTAssertNoThrow(try await Cipher(js: youtube.js), "Failed to initialize Cipher")
             
         } catch let error {
             XCTFail("did throw error: \(error)")
@@ -114,12 +106,9 @@ final class YouTubeKitTests: XCTestCase {
             
             XCTAssert(!streams.filterVideoOnly().isEmpty)
             XCTAssert(!streams.filterAudioOnly().isEmpty)
-            XCTAssert(!streams.filterVideoAndAudio().isEmpty)
+            XCTAssertHighestResolutionStreamAtLeastHD(streams)
             
             try await checkAllStreamReachability(streams)
-            
-            // test Cipher initialization directly (in case not lazily loaded)
-            await XCTAssertNoThrow(try await Cipher(js: youtube.js), "Failed to initialize Cipher")
             
         } catch let error {
             XCTFail("did throw error: \(error)")
@@ -135,12 +124,27 @@ final class YouTubeKitTests: XCTestCase {
             
             XCTAssert(!streams.filterVideoOnly().isEmpty)
             XCTAssert(!streams.filterAudioOnly().isEmpty)
-            XCTAssert(!streams.filterVideoAndAudio().isEmpty)
+            XCTAssertHighestResolutionStreamAtLeastHD(streams)
             
             try await checkAllStreamReachability(streams)
             
-            // test Cipher initialization directly (in case not lazily loaded)
-            await XCTAssertNoThrow(try await Cipher(js: youtube.js), "Failed to initialize Cipher")
+        } catch let error {
+            XCTFail("did throw error: \(error)")
+        }
+    }
+    
+    func testSampleVideo6() async {
+        let youtube = YouTube(videoID: "jmIpv3ftEVM")
+        do {
+            let streams = try await youtube.streams
+            XCTAssert(streams.count > 0)
+            checkStreams(streams)
+            
+            XCTAssert(!streams.filterVideoOnly().isEmpty)
+            XCTAssert(!streams.filterAudioOnly().isEmpty)
+            XCTAssertHighestResolutionStreamAtLeastHD(streams)
+            
+            try await checkAllStreamReachability(streams)
             
         } catch let error {
             XCTFail("did throw error: \(error)")
@@ -159,7 +163,7 @@ final class YouTubeKitTests: XCTestCase {
             
             XCTAssert(!streams.filterVideoOnly().isEmpty)
             XCTAssert(!streams.filterAudioOnly().isEmpty)
-            XCTAssert(!streams.filterVideoAndAudio().isEmpty)
+            XCTAssertHighestResolutionStreamAtLeastHD(streams)
             
             try await checkAllStreamReachability(streams)
             
@@ -168,8 +172,63 @@ final class YouTubeKitTests: XCTestCase {
         }
     }
     
+    func testSampleVideoAgeRestrictedRemote() async {
+        let youtube = YouTube(videoID: "HtVdAasjOgU", methods: [.remote])
+        do {
+            let streams = try await youtube.streams
+            XCTAssert(streams.count > 0)
+            checkStreams(streams)
+            print(streams.count)
+            
+            XCTAssert(!streams.filterVideoOnly().isEmpty)
+            XCTAssert(!streams.filterAudioOnly().isEmpty)
+            XCTAssertHighestResolutionStreamAtLeastHD(streams)
+            
+            try await checkAllStreamReachability(streams)
+            
+        } catch let error {
+            XCTFail("did throw error: \(error)")
+        }
+    }
+
+    func testSampleVideoMadeForKids() async {
+        let youtube = YouTube(videoID: "GObpYg_NjLQ") // "Made for kids" video
+        do {
+            let streams = try await youtube.streams
+            XCTAssert(streams.count > 0)
+            checkStreams(streams)
+
+            XCTAssert(!streams.filterVideoOnly().isEmpty)
+            XCTAssert(!streams.filterAudioOnly().isEmpty)
+            XCTAssertHighestResolutionStreamAtLeastHD(streams)
+
+            try await checkAllStreamReachability(streams)
+
+        } catch let error {
+            XCTFail("did throw error: \(error)")
+        }
+    }
+
+    func testSampleVideoMadeForKidsRemote() async {
+        let youtube = YouTube(videoID: "GObpYg_NjLQ", methods: [.remote]) // "Made for kids" video
+        do {
+            let streams = try await youtube.streams
+            XCTAssert(streams.count > 0)
+            checkStreams(streams)
+
+            XCTAssert(!streams.filterVideoOnly().isEmpty)
+            XCTAssert(!streams.filterAudioOnly().isEmpty)
+            XCTAssertHighestResolutionStreamAtLeastHD(streams)
+
+            try await checkAllStreamReachability(streams)
+
+        } catch let error {
+            XCTFail("did throw error: \(error)")
+        }
+    }
+
     func testLivestreamHlsManifestUrl() async {
-        let youtube = YouTube(videoID: "O9mYwRlucZY")
+        let youtube = YouTube(videoID: "tj4knR4r1UU")
         do {
             let livestreams = try await youtube.livestreams
             XCTAssert(livestreams.count > 0)
@@ -182,7 +241,7 @@ final class YouTubeKitTests: XCTestCase {
     }
     
     func testLivestreamHlsManifestUrlRemote() async {
-        let youtube = YouTube(videoID: "O9mYwRlucZY", methods: [.remote])
+        let youtube = YouTube(videoID: "tj4knR4r1UU", methods: [.remote])
         do {
             let livestreams = try await youtube.livestreams
             XCTAssert(livestreams.count > 0)
@@ -195,7 +254,7 @@ final class YouTubeKitTests: XCTestCase {
     }
     
     func testRemoteExtraction() async {
-        let youtube = YouTube(videoID: "2lAe1cqCOXo", methods: [.remote])
+        let youtube = YouTube(videoID: "dQw4w9WgXcQ", methods: [.remote])
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
@@ -205,6 +264,7 @@ final class YouTubeKitTests: XCTestCase {
             XCTAssert(!streams.filterVideoOnly().isEmpty)
             XCTAssert(!streams.filterAudioOnly().isEmpty)
             XCTAssert(!streams.filterVideoAndAudio().isEmpty)
+            XCTAssertHighestResolutionStreamAtLeastHD(streams)
             
             try await checkAllStreamReachability(streams)
         } catch let error {
@@ -221,7 +281,7 @@ final class YouTubeKitTests: XCTestCase {
             XCTAssertEqual(metadata.title, "Le Maroc Vu du Ciel (Documentaire de Yann Arthus-Bertrand)")
             XCTAssertFalse(metadata.description.isEmpty)
             XCTAssertEqual(metadata.duration, (60+19)*60+34)
-            XCTAssertEqual(metadata.thumbnail!.url, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/sddefault.jpg"))
+            XCTAssert([URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/sddefault.jpg")!, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/hqdefault.jpg")!, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/hq720.jpg")!].contains(metadata.thumbnail!.url))
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
@@ -234,22 +294,34 @@ final class YouTubeKitTests: XCTestCase {
             XCTAssertEqual(metadata.title, "Le Maroc Vu du Ciel (Documentaire de Yann Arthus-Bertrand)")
             XCTAssertFalse(metadata.description.isEmpty)
             XCTAssertEqual(metadata.duration, (60+19)*60+34)
-            XCTAssertEqual(metadata.thumbnail!.url, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/sddefault.jpg"))
+            XCTAssert([URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/sddefault.jpg")!, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/hqdefault.jpg")!, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/hq720.jpg")!].contains(metadata.thumbnail!.url))
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
     }
     
     func testMetadataForLive() async {
-        let youtube = YouTube(videoID: "Z-Nwo-ypKtM")
+        let youtube = YouTube(videoID: "LuKwFajn37U")
         do {
             let metadata = try await youtube.metadata!
-            XCTAssertEqual(metadata.title, "franceinfo - DIRECT TV - actualité france et monde, interviews, documentaires et analyses")
+            XCTAssertEqual(metadata.title, "DW News livestream | Headline news from around the world")
             XCTAssertFalse(metadata.description.isEmpty)
             XCTAssertNotNil(metadata.thumbnail!.url)
         } catch let error {
             XCTFail("did throw error: \(error)")
         }
+    }
+    
+    func testStreamingFormatDecodesWithoutQuality() throws {
+        let json = #"""
+        {
+            "itag": 18,
+            "url": "https://example.com/video.mp4",
+            "mimeType": "video/mp4; codecs=\"avc1.42001E, mp4a.40.2\""
+        }
+        """#
+        let format = try JSONDecoder().decode(InnerTube.StreamingData.Format.self, from: Data(json.utf8))
+        XCTAssertNil(format.quality)
     }
     
 

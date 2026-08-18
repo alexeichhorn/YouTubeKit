@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import os.log
+@preconcurrency import os.log
 
 @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
 public class YouTube {
@@ -14,8 +14,13 @@ public class YouTube {
     private var _js: String?
     private var _jsURL: URL?
     
+#if swift(>=5.10)
+    nonisolated(unsafe) private static var __js: String? // caches js between calls
+    nonisolated(unsafe) private static var __jsURL: URL?
+#else
     private static var __js: String? // caches js between calls
     private static var __jsURL: URL?
+#endif
     
     private var _videoInfos: [InnerTube.VideoInfo]?
     
@@ -24,6 +29,7 @@ public class YouTube {
     private var playerConfigArgs: [String: Any]?
     private var _ageRestricted: Bool?
     private var _signatureTimestamp: Int?
+    private var _ytcfg: Extraction.YtCfg?
     
     private var _fmtStreams: [Stream]?
     
@@ -66,22 +72,26 @@ public class YouTube {
     
     private let log = OSLog(YouTube.self)
     
-    /// - parameter methods: Methods used to extract streams from the video - ordered by priority (Default: only local)
-    public init(videoID: String, proxies: [String: URL] = [:], useOAuth: Bool = false, allowOAuthCache: Bool = false, methods: [ExtractionMethod] = [.local]) {
+    /// - parameter methods: Methods used to extract streams from the video - ordered by priority (Default: `local` on iOS, macOS, tvOS, visionOS; `remote` on watchOS)
+    public init(videoID: String, proxies: [String: URL] = [:], useOAuth: Bool = false, allowOAuthCache: Bool = false, methods: [ExtractionMethod] = .default) {
         self.videoID = videoID
         self.useOAuth = useOAuth
         self.allowOAuthCache = allowOAuthCache
         // TODO: install proxies if needed
         
         if methods.isEmpty {
+#if canImport(JavaScriptCore)
             self.methods = [.local]
+#else
+            self.methods = [.remote]
+#endif
         } else {
             self.methods = methods.removeDuplicates()
         }
     }
     
-    /// - parameter methods: Methods used to extract streams from the video - ordered by priority (Default: only local)
-    public convenience init(url: URL, proxies: [String: URL] = [:], useOAuth: Bool = false, allowOAuthCache: Bool = false, methods: [ExtractionMethod] = [.local]) {
+    /// - parameter methods: Methods used to extract streams from the video - ordered by priority (Default: `local` on iOS, macOS, tvOS, visionOS; `remote` on watchOS)
+    public convenience init(url: URL, proxies: [String: URL] = [:], useOAuth: Bool = false, allowOAuthCache: Bool = false, methods: [ExtractionMethod] = .default) {
         let videoID = Extraction.extractVideoID(from: url.absoluteString) ?? ""
         self.init(videoID: videoID, proxies: proxies, useOAuth: useOAuth, allowOAuthCache: allowOAuthCache, methods: methods)
     }
@@ -95,6 +105,7 @@ public class YouTube {
             var request = URLRequest(url: extendedWatchURL)
             request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
             request.setValue("en-US,en", forHTTPHeaderField: "accept-language")
+            request.httpShouldHandleCookies = false
             let (data, _) = try await URLSession.shared.data(for: request)
             _watchHTML = String(data: data, encoding: .utf8) ?? ""
             return _watchHTML!
@@ -109,6 +120,8 @@ public class YouTube {
             var request = URLRequest(url: embedURL)
             request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
             request.setValue("en-US,en", forHTTPHeaderField: "accept-language")
+            request.setValue("https://www.reddit.com/", forHTTPHeaderField: "Referer")
+            request.httpShouldHandleCookies = false
             let (data, _) = try await URLSession.shared.data(for: request)
             _embedHTML = String(data: data, encoding: .utf8) ?? ""
             return _embedHTML!
@@ -197,7 +210,18 @@ public class YouTube {
             }
             
             _signatureTimestamp = try await Extraction.extractSignatureTimestamp(fromJS: js)
-            return _signatureTimestamp!
+            return _signatureTimestamp
+        }
+    }
+    
+    var ytcfg: Extraction.YtCfg {
+        get async throws {
+            if let cached = _ytcfg {
+                return cached
+            }
+            
+            _ytcfg = try await Extraction.extractYtCfg(from: watchHTML)
+            return _ytcfg!
         }
     }
     
@@ -213,6 +237,7 @@ public class YouTube {
             
             let result = try await Task.retry(with: methods) { method in
                 switch method {
+#if canImport(JavaScriptCore)
                 case .local:
                     let allStreamingData = try await self.streamingData
                     let videoInfos = try await self.videoInfos
@@ -234,6 +259,9 @@ public class YouTube {
                             YouTube.__jsURL = nil
                             try await Extraction.applySignature(streamManifest: &streamManifest, videoInfo: videoInfo, js: js)
                         }
+                        
+                        // filter out dubbed audio tracks
+                        streamManifest = Extraction.filterOutDubbedAudio(streamManifest: streamManifest)
                         
                         let newStreams = streamManifest.compactMap { try? Stream(format: $0) }
                         
@@ -258,7 +286,7 @@ public class YouTube {
                     }
                     
                     return streams
-                    
+#endif
                     
                 case .remote(let serverURL):
                     let remoteClient = RemoteYouTubeClient(serverURL: serverURL)
@@ -291,6 +319,11 @@ public class YouTube {
             if !streamingData.isEmpty {
                 return streamingData
             } else {
+                if let videoInfo = try? await loadAdditionalVideoInfos(forClient: .webEmbed), let streamingData = videoInfo.streamingData {
+                    _videoInfos = [videoInfo]
+                    return [streamingData]
+                }
+
                 try await bypassAgeGate()
                 let streamingData = try await videoInfos.compactMap { $0.streamingData }
                 if !streamingData.isEmpty {
@@ -303,13 +336,9 @@ public class YouTube {
     }
 
     /// Video details from video info.
-    var videoDetails: InnerTube.VideoInfo.VideoDetails {
+    var videoDetails: [InnerTube.VideoInfo.VideoDetails] {
         get async throws {
-            if let videoDetails = try await videoInfos.lazy.compactMap({ $0.videoDetails }).first {
-                return videoDetails
-            } else {
-                throw YouTubeKitError.extractError
-            }
+            try await videoInfos.compactMap { $0.videoDetails }
         }
     }
     
@@ -320,9 +349,9 @@ public class YouTube {
             }
             
             // try extracting video infos from watch html directly as well
-            let watchVideoInfoTask = Task<InnerTube.VideoInfo?, Never> {
+            let watchVideoInfoTask = Task<InnerTube.VideoInfo?, Never> { [log] in
                 do {
-                    return try await Extraction.getVideoInfo(fromHTML: watchHTML)
+                    return nil //try await Extraction.getVideoInfo(fromHTML: watchHTML)  // (temporarily disabled)
                 } catch let error {
                     os_log("Couldn't extract video info from main watch html: %{public}@", log: log, type: .debug, error.localizedDescription)
                     return nil
@@ -330,11 +359,12 @@ public class YouTube {
             }
 
             let signatureTimestamp = try await signatureTimestamp
+            let ytcfg = try await ytcfg
             
-            let innertubeClients: [InnerTube.ClientType] = [.ios, .mWeb]
+            let innertubeClients: [InnerTube.ClientType] = [.visionOS, .web]
             
             let results: [Result<InnerTube.VideoInfo, Error>] = await innertubeClients.concurrentMap { [videoID, useOAuth, allowOAuthCache] client in
-                let innertube = InnerTube(client: client, signatureTimestamp: signatureTimestamp, useOAuth: useOAuth, allowCache: allowOAuthCache)
+                let innertube = InnerTube(client: client, signatureTimestamp: signatureTimestamp, ytcfg: ytcfg, useOAuth: useOAuth, allowCache: allowOAuthCache)
                 
                 do {
                     let innertubeResponse = try await innertube.player(videoID: videoID)
@@ -378,7 +408,12 @@ public class YouTube {
     
     private func loadAdditionalVideoInfos(forClient client: InnerTube.ClientType) async throws -> InnerTube.VideoInfo {
         let signatureTimestamp = try await signatureTimestamp
-        let innertube = InnerTube(client: client, signatureTimestamp: signatureTimestamp, useOAuth: useOAuth, allowCache: allowOAuthCache)
+        let ytcfg = if client == .webEmbed {
+            try await Extraction.extractYtCfg(from: embedHTML)
+        } else {
+            try await ytcfg
+        }
+        let innertube = InnerTube(client: client, signatureTimestamp: signatureTimestamp, ytcfg: ytcfg, useOAuth: useOAuth, allowCache: allowOAuthCache)
         let videoInfo = try await innertube.player(videoID: videoID)
         
         // ignore if incorrect videoID
@@ -392,18 +427,19 @@ public class YouTube {
     
     private func bypassAgeGate() async throws {
         let signatureTimestamp = try await signatureTimestamp
-        let innertube = InnerTube(client: .tvEmbed, signatureTimestamp: signatureTimestamp, useOAuth: useOAuth, allowCache: allowOAuthCache)
+        let ytcfg = try await ytcfg
+        let innertube = InnerTube(client: .webCreator, signatureTimestamp: signatureTimestamp, ytcfg: ytcfg, useOAuth: useOAuth, allowCache: allowOAuthCache)
         let innertubeResponse = try await innertube.player(videoID: videoID)
-        
+
         if innertubeResponse.playabilityStatus?.status == "UNPLAYABLE" || innertubeResponse.playabilityStatus?.status == "LOGIN_REQUIRED" {
             throw YouTubeKitError.videoAgeRestricted
         }
-        
+
         if innertubeResponse.videoDetails?.videoId != videoID {
-            os_log("Skipping player response from tvEmbed client. Got player response for %{public}@ instead of %{public}@", log: log, type: .info, innertubeResponse.videoDetails?.videoId ?? "nil", videoID)
+            os_log("Skipping player response from webCreator client. Got player response for %{public}@ instead of %{public}@", log: log, type: .info, innertubeResponse.videoDetails?.videoId ?? "nil", videoID)
             throw YouTubeKitError.extractError
         }
-        
+
         _videoInfos = [innertubeResponse]
     }
     

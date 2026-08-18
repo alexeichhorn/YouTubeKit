@@ -6,6 +6,7 @@
 //
 
 import XCTest
+@testable import YouTubeKit
 
 //XCTAssertNoThrow<T>(_ expression: @autoclosure () throws -> T, _ message: @autoclosure () -> String = "", file: StaticString = #filePath, line: UInt = #line)
 
@@ -16,4 +17,8 @@ func XCTAssertNoThrow<T>(_ expression: @autoclosure () async throws -> T, _ mess
     } catch let error {
         XCTFail(message() + " - did throw error \(error)", file: file, line: line)
     }
+}
+
+func XCTAssertHighestResolutionStreamAtLeastHD(_ streams: [YouTubeKit.Stream], file: StaticString = #filePath, line: UInt = #line) {
+    XCTAssert((streams.highestResolutionStream()?.videoResolution ?? 0) >= 720, file: file, line: line)
 }

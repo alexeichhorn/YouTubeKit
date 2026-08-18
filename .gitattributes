@@ -1,0 +1,2 @@
+# Exclude bundled JavaScript helper files from GitHub language statistics
+Sources/YouTubeKit/Resources/*.js linguist-vendored

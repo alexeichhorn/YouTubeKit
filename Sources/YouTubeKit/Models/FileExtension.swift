@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum FileExtension: String {
+public enum FileExtension: String, Sendable {
     // video
     case threegp = "3gp"
     case ts

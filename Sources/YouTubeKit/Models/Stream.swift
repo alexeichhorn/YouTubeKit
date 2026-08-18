@@ -8,7 +8,7 @@
 import Foundation
 
 @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
-public struct Stream {
+public struct Stream: Sendable {
     
     public let url: URL
     public let itag: ITag

@@ -8,7 +8,7 @@
 import Foundation
 
 /// Represents metadata for a YouTube video.
-public struct YouTubeMetadata {
+public struct YouTubeMetadata: Sendable {
     
     /// The title of the YouTube video.
     public let title: String
@@ -23,7 +23,7 @@ public struct YouTubeMetadata {
     public let thumbnail: Thumbnail?
 
     /// Represents a YouTube video thumbnail.
-    public struct Thumbnail {
+    public struct Thumbnail: Sendable {
         /// The URL of the thumbnail image.
         public let url: URL
     }
@@ -36,10 +36,27 @@ public struct YouTubeMetadata {
     @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
     static func metadata(from videoDetails: InnerTube.VideoInfo.VideoDetails) -> Self {
         YouTubeMetadata(
-            title: videoDetails.title,
-            description: videoDetails.shortDescription,
-            duration: TimeInterval(videoDetails.lengthSeconds) ?? 0,
+            title: videoDetails.title ?? "",
+            description: videoDetails.shortDescription ?? "",
+            duration: TimeInterval(videoDetails.lengthSeconds ?? "") ?? 0,
             thumbnail: videoDetails.thumbnail.thumbnails.map { YouTubeMetadata.Thumbnail(url: $0.url) }.last
+        )
+    }
+    
+    /// Initialize YouTubeMetadata from multiple video details - choosing the first available information each.
+    ///
+    /// - Parameters:
+    ///   - videoDetails: The video details from InnerTube.VideoInfo.VideoDetails.
+    /// - Returns: A YouTubeMetadata instance.
+    @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
+    static func metadata(from videoDetails: [InnerTube.VideoInfo.VideoDetails]) -> Self? {
+        guard let title = videoDetails.lazy.compactMap({ $0.title }).first else { return nil }
+        
+        return YouTubeMetadata(
+            title: title,
+            description: videoDetails.lazy.compactMap { $0.shortDescription }.first ?? "",
+            duration: videoDetails.lazy.compactMap { TimeInterval($0.lengthSeconds ?? "") }.first ?? 0,
+            thumbnail: videoDetails.first(where: { !$0.thumbnail.thumbnails.isEmpty })?.thumbnail.thumbnails.map { YouTubeMetadata.Thumbnail(url: $0.url) }.last
         )
     }
     
