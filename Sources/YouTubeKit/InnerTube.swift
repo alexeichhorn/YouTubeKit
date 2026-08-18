@@ -27,7 +27,7 @@ class InnerTube {
         
         var context: Context {
             let client = Context.ContextClient(clientName: name, clientVersion: version, clientScreen: screen, androidSdkVersion: androidSdkVersion, deviceMake: deviceMake, deviceModel: deviceModel, osName: osName, osVersion: osVersion)
-            let thirdParty = screen == "EMBED" ? Context.ThirdParty(embedUrl: "https://www.youtube.com/") : nil
+            let thirdParty = screen == "EMBED" ? Context.ThirdParty(embedUrl: "https://www.reddit.com/") : nil
             return Context(client: client, thirdParty: thirdParty)
         }
         
@@ -70,7 +70,7 @@ class InnerTube {
         // yt-dlp rolled this client back because newer versions can yield SABR-only streams.
         ClientType.androidVR: Client(name: "ANDROID_VR", version: "1.65.10", screen: nil, apiKey: "", internalID: 28, userAgent: "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip", androidSdkVersion: 32, deviceModel: "Quest 3"),
         ClientType.visionOS: Client(name: "VISIONOS", version: "1.02", screen: nil, apiKey: "", internalID: 101, userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15", deviceMake: "Apple", deviceModel: "RealityDevice17,1", osName: "visionOS", osVersion: "26.5.23O471"),
-        ClientType.webEmbed: Client(name: "WEB_EMBEDDED_PLAYER", version: "1.20260115.01.00", screen: "EMBED", apiKey: "", internalID: 56, userAgent: "Mozilla/5.0"),
+        ClientType.webEmbed: Client(name: "WEB_EMBEDDED_PLAYER", version: "2.20260708.00.00", screen: "EMBED", apiKey: "", internalID: 56, userAgent: nil),
         ClientType.webCreator: Client(name: "WEB_CREATOR", version: "1.20260708.06.00", screen: nil, apiKey: "", internalID: 62, userAgent: nil),
         ClientType.androidEmbed: Client(name: "ANDROID_EMBEDDED_PLAYER", version: "18.11.34", screen: "EMBED", apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", internalID: 3, userAgent: "com.google.android.youtube/18.11.34 (Linux; U; Android 11) gzip"),
         ClientType.tv: Client(name: "TVHTML5", version: "7.20250923.13.00", screen: nil, apiKey: "", internalID: 7, userAgent: "Mozilla/5.0 (ChromiumStylePlatform) Cobalt/25.lts.30.1034943-gold (unlike Gecko), Unknown_TV_Unknown_0/Unknown (Unknown, Unknown)"),

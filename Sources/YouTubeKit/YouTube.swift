@@ -120,6 +120,7 @@ public class YouTube {
             var request = URLRequest(url: embedURL)
             request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
             request.setValue("en-US,en", forHTTPHeaderField: "accept-language")
+            request.setValue("https://www.reddit.com/", forHTTPHeaderField: "Referer")
             request.httpShouldHandleCookies = false
             let (data, _) = try await URLSession.shared.data(for: request)
             _embedHTML = String(data: data, encoding: .utf8) ?? ""
@@ -318,6 +319,11 @@ public class YouTube {
             if !streamingData.isEmpty {
                 return streamingData
             } else {
+                if let videoInfo = try? await loadAdditionalVideoInfos(forClient: .webEmbed), let streamingData = videoInfo.streamingData {
+                    _videoInfos = [videoInfo]
+                    return [streamingData]
+                }
+
                 try await bypassAgeGate()
                 let streamingData = try await videoInfos.compactMap { $0.streamingData }
                 if !streamingData.isEmpty {
@@ -402,7 +408,11 @@ public class YouTube {
     
     private func loadAdditionalVideoInfos(forClient client: InnerTube.ClientType) async throws -> InnerTube.VideoInfo {
         let signatureTimestamp = try await signatureTimestamp
-        let ytcfg = try await ytcfg
+        let ytcfg = if client == .webEmbed {
+            try await Extraction.extractYtCfg(from: embedHTML)
+        } else {
+            try await ytcfg
+        }
         let innertube = InnerTube(client: client, signatureTimestamp: signatureTimestamp, ytcfg: ytcfg, useOAuth: useOAuth, allowCache: allowOAuthCache)
         let videoInfo = try await innertube.player(videoID: videoID)
         
