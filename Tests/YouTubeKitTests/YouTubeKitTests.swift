@@ -171,6 +171,25 @@ final class YouTubeKitTests: XCTestCase {
             XCTFail("did throw error: \(error)")
         }
     }
+    
+    func testSampleVideoAgeRestrictedRemote() async {
+        let youtube = YouTube(videoID: "HtVdAasjOgU", methods: [.remote])
+        do {
+            let streams = try await youtube.streams
+            XCTAssert(streams.count > 0)
+            checkStreams(streams)
+            print(streams.count)
+            
+            XCTAssert(!streams.filterVideoOnly().isEmpty)
+            XCTAssert(!streams.filterAudioOnly().isEmpty)
+            XCTAssertHighestResolutionStreamAtLeastHD(streams)
+            
+            try await checkAllStreamReachability(streams)
+            
+        } catch let error {
+            XCTFail("did throw error: \(error)")
+        }
+    }
 
     func testSampleVideoMadeForKids() async {
         let youtube = YouTube(videoID: "GObpYg_NjLQ") // "Made for kids" video
