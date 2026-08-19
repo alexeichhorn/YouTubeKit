@@ -50,7 +50,7 @@ extension YouTube {
            audioStream.fileExtension == .m4a,
            let videoDuration {
             do {
-                return try await makeHLSPlayerItem(
+                return try await HLSPlayerItem.make(
                     videoStream: videoStream,
                     audioStream: audioStream,
                     duration: videoDuration
