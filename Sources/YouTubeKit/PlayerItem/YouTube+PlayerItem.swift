@@ -46,6 +46,7 @@ extension YouTube {
         let metadataDuration = try await metadata?.duration
         let videoDuration = metadataDuration.flatMap { $0 > 0 ? $0 : nil }
 
+#if !os(watchOS)
         if videoStream.fileExtension == .mp4,
            audioStream.fileExtension == .m4a,
            let videoDuration {
@@ -61,6 +62,7 @@ extension YouTube {
                 os_log("Couldn't create HLS player item for %{public}@: %{public}@. Falling back to AVMutableComposition.", log: OSLog(category: "YouTube+PlayerItem"), type: .info, videoID, error.localizedDescription)
             }
         }
+#endif
 
         return try await compositionPlayerItem(
             videoStream: videoStream,

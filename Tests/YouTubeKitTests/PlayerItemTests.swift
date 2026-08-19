@@ -2,9 +2,10 @@ import AVFoundation
 import Testing
 @testable import YouTubeKit
 
+#if !os(watchOS)
 struct PlayerItemTests {
 
-    @available(iOS 16.0, watchOS 9.0, tvOS 16.0, macOS 13.0, *)
+    @available(iOS 16.0, tvOS 16.0, macOS 13.0, *)
     @Test("Player item uses HLS and plays")
     @MainActor
     func playerItemUsesHLSAndPlays() async throws {
@@ -38,3 +39,4 @@ struct PlayerItemTests {
     }
 
 }
+#endif

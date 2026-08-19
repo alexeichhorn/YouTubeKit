@@ -5,7 +5,8 @@
 
 import Foundation
 
-@available(iOS 15.0, watchOS 8.0, tvOS 15.0, macOS 12.0, *)
+#if !os(watchOS)
+@available(iOS 15.0, tvOS 15.0, macOS 12.0, *)
 struct MP4Index {
     struct Segment {
         let offset: UInt64
@@ -174,3 +175,4 @@ private extension Data {
         return String(decoding: self[offset..<(offset + length)], as: UTF8.self)
     }
 }
+#endif

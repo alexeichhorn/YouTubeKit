@@ -6,9 +6,10 @@
 import AVFoundation
 import Foundation
 
+#if !os(watchOS)
 enum HLSPlayerItem {
 
-    @available(iOS 15.0, watchOS 8.0, tvOS 15.0, macOS 12.0, *)
+    @available(iOS 15.0, tvOS 15.0, macOS 12.0, *)
     static func make(videoStream: Stream, audioStream: Stream, duration: TimeInterval) async throws -> AVPlayerItem {
         async let videoIndex = MP4Index.load(from: videoStream.url)
         async let audioIndex = MP4Index.load(from: audioStream.url)
@@ -83,3 +84,4 @@ enum HLSPlayerItemError: LocalizedError {
         }
     }
 }
+#endif

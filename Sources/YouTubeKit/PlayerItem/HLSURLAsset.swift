@@ -6,6 +6,7 @@
 import AVFoundation
 import Foundation
 
+#if !os(watchOS)
 final class HLSURLAsset: AVURLAsset, @unchecked Sendable {
     private let playlistLoader: HLSPlaylistResourceLoader
 
@@ -57,3 +58,4 @@ private final class HLSPlaylistResourceLoader: NSObject, AVAssetResourceLoaderDe
         return true
     }
 }
+#endif
