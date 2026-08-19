@@ -35,6 +35,7 @@ final class PlayabilityTests: XCTestCase {
 #else
             let streams = try await youtubeRemote.streams
 #endif
+            XCTAssertHighestResolutionStreamAtLeastHD(streams)
             
             for stream in streams {
                 let isPlayable = try await checkStreamPlayability(stream: stream)
@@ -61,6 +62,7 @@ final class PlayabilityTests: XCTestCase {
 #else
             let streams = try await youtubeRemote.streams
 #endif
+            XCTAssertHighestResolutionStreamAtLeastHD(streams)
             
             for stream in streams {
                 let isPlayable = try await checkStreamPlayability(stream: stream)

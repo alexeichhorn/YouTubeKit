@@ -11,6 +11,7 @@ public enum YouTubeKitError: String, Error {
     case maxRetriesExceeded
     case htmlParseError
     case extractError
+    case compositionTrackCreationFailed
     case regexMatchError
     case videoUnavailable
     case videoAgeRestricted
