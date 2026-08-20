@@ -19,6 +19,9 @@ public struct Stream: Sendable {
     
     public let bitrate: Int?
     public let averageBitrate: Int?
+
+    let width: Int?
+    let height: Int?
     
     @available(*, deprecated, message: "Might be empty if using remote fetching method. Use `videoCodec`, `audioCodec` or `fileExtension` instead.")
     public let mimeType: String
@@ -67,6 +70,8 @@ public struct Stream: Sendable {
         
         self.bitrate = format.bitrate
         self.averageBitrate = format.averageBitrate
+        self.width = format.width
+        self.height = format.height
         self.filesize = format.contentLength.flatMap { Int($0) }
     }
     
@@ -88,6 +93,8 @@ public struct Stream: Sendable {
         
         self.bitrate = remoteStream.videoBitrate ?? remoteStream.audioBitrate
         self.averageBitrate = remoteStream.averageBitrate
+        self.width = remoteStream.width
+        self.height = remoteStream.height
         self.filesize = remoteStream.filesize
         
         // Backward compatibility for deprecated `subtype` and `mimeType`
