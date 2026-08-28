@@ -26,8 +26,10 @@ final class PlayabilityTests: XCTestCase {
         let videoID = "V3dbG9pAi8I"
 #if canImport(JavaScriptCore)
         let youtubeLocal = YouTube(videoID: videoID, methods: [.local])
+        await XCTAssertLiveContent(youtubeLocal, false)
 #endif
         let youtubeRemote = YouTube(videoID: videoID, methods: [.remote])
+        await XCTAssertLiveContent(youtubeRemote, false)
 
         do {
 #if canImport(JavaScriptCore)
@@ -53,8 +55,10 @@ final class PlayabilityTests: XCTestCase {
         let videoID = "njX2bu-_Vw4"
 #if canImport(JavaScriptCore)
         let youtubeLocal = YouTube(videoID: videoID, methods: [.local])
+        await XCTAssertLiveContent(youtubeLocal, false)
 #endif
         let youtubeRemote = YouTube(videoID: videoID, methods: [.remote])
+        await XCTAssertLiveContent(youtubeRemote, false)
 
         do {
 #if canImport(JavaScriptCore)
@@ -80,6 +84,8 @@ final class PlayabilityTests: XCTestCase {
         let videoID = "Slj4-Sv-YNA"
         let youtubeLocal = YouTube(videoID: videoID, methods: [.local])
         let youtubeRemote = YouTube(videoID: videoID, methods: [.remote])
+        await XCTAssertLiveContent(youtubeLocal, false)
+        await XCTAssertLiveContent(youtubeRemote, false)
         
         let localPlayerItem = try await youtubeLocal.playerItem()
         let remotePlayerItem = try await youtubeRemote.playerItem()

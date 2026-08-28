@@ -13,7 +13,9 @@ struct PlayerItemTests {
     @MainActor
     func playerItemUsesHLSAndPlays(method: YouTube.ExtractionMethod) async throws {
         let start = Date()
-        let item = try await YouTube(videoID: "Slj4-Sv-YNA", methods: [method]).playerItem()
+        let youtube = YouTube(videoID: "Slj4-Sv-YNA", methods: [method])
+        #expect(try await youtube.isLiveContent == false)
+        let item = try await youtube.playerItem()
         let asset = try #require(item.asset as? AVURLAsset)
         #expect(asset.url.scheme == "youtubekit-hls")
 
@@ -48,7 +50,9 @@ struct PlayerItemTests {
     )
     @MainActor
     func livestreamPlayerItemUsesNativeHLSAndPlays(method: YouTube.ExtractionMethod) async throws {
-        let item = try await YouTube(videoID: "tj4knR4r1UU", methods: [method]).playerItem()
+        let youtube = YouTube(videoID: "tj4knR4r1UU", methods: [method])
+        #expect(try await youtube.isLiveContent == true)
+        let item = try await youtube.playerItem()
         let asset = try #require(item.asset as? AVURLAsset)
         #expect(asset.url.absoluteString.contains(".m3u8"))
 
