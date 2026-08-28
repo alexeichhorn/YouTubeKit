@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import Testing
 @testable import YouTubeKit
 
 //XCTAssertNoThrow<T>(_ expression: @autoclosure () throws -> T, _ message: @autoclosure () -> String = "", file: StaticString = #filePath, line: UInt = #line)
@@ -30,5 +31,16 @@ func XCTAssertLiveContent(_ youtube: YouTube, _ expected: Bool, file: StaticStri
         XCTAssertEqual(isLiveContent, expected, file: file, line: line)
     } catch {
         XCTFail("Live content check threw error: \(error)", file: file, line: line)
+    }
+}
+
+extension YouTube.ExtractionMethod: CustomTestStringConvertible {
+    public var testDescription: String {
+        switch self {
+#if canImport(JavaScriptCore)
+        case .local: ".local"
+#endif
+        case .remote: ".remote"
+        }
     }
 }
