@@ -84,7 +84,7 @@ final class YouTubeKitTests: XCTestCase {
             print(streams.count)
             //print(streams.filterAudioOnly().filter { $0.subtype == "mp4" }.highestAudioBitrateStream()?.url)
             //print(streams.filterVideoOnly().highestResolutionStream())
-            print(streams.filter { $0.isProgressive && $0.fileExtension == .mp4 }.lowestResolutionStream()!)
+            //print(streams.filter { $0.isProgressive && $0.fileExtension == .mp4 }.lowestResolutionStream()!)
             
             XCTAssert(!streams.filterVideoOnly().isEmpty)
             XCTAssert(!streams.filterAudioOnly().isEmpty)
