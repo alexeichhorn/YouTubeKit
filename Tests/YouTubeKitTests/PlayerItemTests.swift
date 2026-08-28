@@ -73,4 +73,13 @@ struct PlayerItemTests {
     }
 
 }
+
+extension YouTube.ExtractionMethod: CustomTestStringConvertible {
+    public var testDescription: String {
+        switch self {
+        case .local: ".local"
+        case .remote: ".remote"
+        }
+    }
+}
 #endif
