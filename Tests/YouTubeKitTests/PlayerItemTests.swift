@@ -6,11 +6,14 @@ import Testing
 struct PlayerItemTests {
 
     @available(iOS 16.0, tvOS 16.0, macOS 13.0, *)
-    @Test("Player item uses HLS and plays")
+    @Test(
+        "Player item uses HLS and plays",
+        arguments: [YouTube.ExtractionMethod.local, .remote]
+    )
     @MainActor
-    func playerItemUsesHLSAndPlays() async throws {
+    func playerItemUsesHLSAndPlays(method: YouTube.ExtractionMethod) async throws {
         let start = Date()
-        let item = try await YouTube(videoID: "Slj4-Sv-YNA", methods: [.local]).playerItem()
+        let item = try await YouTube(videoID: "Slj4-Sv-YNA", methods: [method]).playerItem()
         let asset = try #require(item.asset as? AVURLAsset)
         #expect(asset.url.scheme == "youtubekit-hls")
 
@@ -39,10 +42,13 @@ struct PlayerItemTests {
     }
 
     @available(iOS 16.0, tvOS 16.0, macOS 13.0, *)
-    @Test("Livestream player item uses native HLS and plays")
+    @Test(
+        "Livestream player item uses native HLS and plays",
+        arguments: [YouTube.ExtractionMethod.local, .remote]
+    )
     @MainActor
-    func livestreamPlayerItemUsesNativeHLSAndPlays() async throws {
-        let item = try await YouTube(videoID: "tj4knR4r1UU", methods: [.local]).playerItem()
+    func livestreamPlayerItemUsesNativeHLSAndPlays(method: YouTube.ExtractionMethod) async throws {
+        let item = try await YouTube(videoID: "tj4knR4r1UU", methods: [method]).playerItem()
         let asset = try #require(item.asset as? AVURLAsset)
         #expect(asset.url.absoluteString.contains(".m3u8"))
 
