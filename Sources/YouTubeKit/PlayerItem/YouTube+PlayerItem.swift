@@ -17,7 +17,9 @@ extension YouTube {
     /// - Parameter maxResolution: The maximum resolution of the video stream. If `nil`, the highest resolution stream is used.
     @available(iOS 15.0, watchOS 8.0, tvOS 15.0, macOS 12.0, *)
     public func playerItem(maxResolution: Int? = nil) async throws -> AVPlayerItem {
-        if try await isLiveContent, let livestream = try await livestreams.first {
+        // For livestreams: use the direct url
+        let isLiveContent = (try? await isLiveContent) ?? false
+        if isLiveContent, let livestream = try await livestreams.first {
             return AVPlayerItem(url: livestream.url)
         }
 
