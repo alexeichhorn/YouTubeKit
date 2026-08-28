@@ -82,20 +82,22 @@ final class PlayabilityTests: XCTestCase {
     func testAutoCombinedPlayerItemPlayability() async throws {
         
         let videoID = "Slj4-Sv-YNA"
+
+#if canImport(JavaScriptCore)
         let youtubeLocal = YouTube(videoID: videoID, methods: [.local])
-        let youtubeRemote = YouTube(videoID: videoID, methods: [.remote])
         await XCTAssertLiveContent(youtubeLocal, false)
-        await XCTAssertLiveContent(youtubeRemote, false)
-        
         let localPlayerItem = try await youtubeLocal.playerItem()
-        let remotePlayerItem = try await youtubeRemote.playerItem()
-        
         let localIsPlayable = try await localPlayerItem.asset.load(.isPlayable)
-        let remoteIsPlayable = try await remotePlayerItem.asset.load(.isPlayable)
 
         XCTAssert(localIsPlayable, "Local player item should be playable")
-        XCTAssert(remoteIsPlayable, "Remote player item should be playable")
+#endif
 
+        let youtubeRemote = YouTube(videoID: videoID, methods: [.remote])
+        await XCTAssertLiveContent(youtubeRemote, false)
+        let remotePlayerItem = try await youtubeRemote.playerItem()
+        let remoteIsPlayable = try await remotePlayerItem.asset.load(.isPlayable)
+
+        XCTAssert(remoteIsPlayable, "Remote player item should be playable")
     }
     
 }
