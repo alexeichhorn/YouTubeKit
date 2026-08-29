@@ -20,7 +20,13 @@ extension YouTube {
         // For livestreams: use the direct url
         let isLiveContent = (try? await isLiveContent) ?? false
         if isLiveContent, let livestream = try await livestreams.first {
-            return AVPlayerItem(url: livestream.url)
+            let playerItem = AVPlayerItem(url: livestream.url)
+#if !os(watchOS)
+            if let maxResolution {
+                playerItem.preferredMaximumResolution = CGSize(width: CGFloat(maxResolution) * 16 / 9, height: CGFloat(maxResolution))
+            }
+#endif
+            return playerItem
         }
 
         let streams = try await streams

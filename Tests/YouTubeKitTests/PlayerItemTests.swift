@@ -52,7 +52,8 @@ struct PlayerItemTests {
     func livestreamPlayerItemUsesNativeHLSAndPlays(method: YouTube.ExtractionMethod) async throws {
         let youtube = YouTube(videoID: "tj4knR4r1UU", methods: [method])
         #expect(try await youtube.isLiveContent == true)
-        let item = try await youtube.playerItem()
+        let item = try await youtube.playerItem(maxResolution: 720)
+        #expect(item.preferredMaximumResolution == CGSize(width: 1280, height: 720))
         let asset = try #require(item.asset as? AVURLAsset)
         #expect(asset.url.absoluteString.contains(".m3u8"))
 
