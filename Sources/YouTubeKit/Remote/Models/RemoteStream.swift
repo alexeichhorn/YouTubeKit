@@ -18,5 +18,7 @@ struct RemoteStream: Decodable {
     let averageBitrate: Int?
     let audioBitrate: Int?
     let videoBitrate: Int?
+    let width: Int?
+    let height: Int?
     let filesize: Int?
 }
