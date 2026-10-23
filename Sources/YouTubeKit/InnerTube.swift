@@ -235,6 +235,7 @@ class InnerTube {
             let audioSampleRate: String?
             let audioChannels: Int?
             let audioTrack: AudioTrack?
+            let drmFamilies: [String]?
             let signatureCipher: String? // not tested yet
             var s: String? // assigned from Extraction.applyDescrambler
             var sp: String? // signature parameter name from signatureCipher

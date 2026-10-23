@@ -17,6 +17,33 @@ final class ExtractionTests: XCTestCase {
         XCTAssertEqual(videoID, "2lAe1cqCOXo")
     }
 
+    func testDescramblerExcludesDRMFormatsBeforeMergingClients() throws {
+        let json = #"""
+        [
+            {
+                "formats": [
+                    {"itag": 18, "mimeType": "video/mp4", "url": "https://example.com/protected-video", "drmFamilies": ["WIDEVINE"]}
+                ],
+                "adaptiveFormats": [
+                    {"itag": 140, "mimeType": "audio/mp4", "url": "https://example.com/protected-audio", "drmFamilies": ["WIDEVINE"]}
+                ]
+            },
+            {
+                "formats": [
+                    {"itag": 18, "mimeType": "video/mp4", "url": "https://example.com/clear-video"}
+                ],
+                "adaptiveFormats": [
+                    {"itag": 140, "mimeType": "audio/mp4", "url": "https://example.com/clear-audio", "drmFamilies": []}
+                ]
+            }
+        ]
+        """#
+        let responses = try JSONDecoder().decode([InnerTube.StreamingData].self, from: Data(json.utf8))
+        let formats = responses.flatMap { Extraction.applyDescrambler(streamData: $0) }
+        XCTAssertEqual(formats.map(\.itag), [18, 140])
+        XCTAssertEqual(formats.compactMap(\.url), ["https://example.com/clear-video", "https://example.com/clear-audio"])
+    }
+
     func testPlayabilityStatusReadsInterstitialErrors() throws {
         let cases: [(String, Extraction.InitialPlayerResponse.PlayabilityStatus.Status, [String])] = [
             (#"{"status":"LOGIN_REQUIRED","errorScreen":{"playerInterstitialRenderer":{"content":{"interstitialViewModel":{"title":{"content":"Private video"},"description":{"content":"Please sign in."}}}}}}"#, .loginRequired, ["Private video", "Please sign in."]),

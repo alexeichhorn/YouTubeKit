@@ -393,6 +393,9 @@ class Extraction {
         if let adaptiveFormats = streamData.adaptiveFormats {
             formats += adaptiveFormats
         }
+
+        // Protected formats must not displace playable alternatives during itag deduplication.
+        formats.removeAll { !($0.drmFamilies?.isEmpty ?? true) }
         
         for (i, data) in formats.enumerated() {
             if data.url == nil {
