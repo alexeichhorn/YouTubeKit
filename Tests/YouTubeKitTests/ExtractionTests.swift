@@ -17,6 +17,20 @@ final class ExtractionTests: XCTestCase {
         XCTAssertEqual(videoID, "2lAe1cqCOXo")
     }
 
+    func testPlayabilityStatusReadsInterstitialErrors() throws {
+        let cases: [(String, Extraction.InitialPlayerResponse.PlayabilityStatus.Status, [String])] = [
+            (#"{"status":"LOGIN_REQUIRED","errorScreen":{"playerInterstitialRenderer":{"content":{"interstitialViewModel":{"title":{"content":"Private video"},"description":{"content":"Please sign in."}}}}}}"#, .loginRequired, ["Private video", "Please sign in."]),
+            (#"{"status":"LOGIN_REQUIRED","reason":"Private video","messages":["This is a private video."]}"#, .loginRequired, ["Private video", "This is a private video."]),
+            (#"{"status":"ERROR"}"#, .error, [])
+        ]
+        for (playabilityStatus, expectedStatus, expectedMessages) in cases {
+            let html = "var ytInitialPlayerResponse = {\"playabilityStatus\":\(playabilityStatus)};"
+            let (status, messages) = try Extraction.playabilityStatus(watchHTML: html)
+            XCTAssertEqual(status, expectedStatus)
+            XCTAssertEqual(messages, expectedMessages)
+        }
+    }
+
     func testJSURLUsesExtractedPlayerPath() throws {
         let html = #"ytcfg.set({"STS":20515});var ytInitialPlayerResponse = {};var ytplayer = {"config":{"assets":{"js":"/s/player/6c5cb4f4/player_ias.vflset/en_US/base.js"}}};"#
         let jsURL = try Extraction.jsURL(html: html)

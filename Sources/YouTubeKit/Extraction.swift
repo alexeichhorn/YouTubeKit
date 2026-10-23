@@ -120,19 +120,16 @@ class Extraction {
     /// of "This is a private video. Please sign in to verify that you may see it."
     /// - parameter watchHTML: The html contents of the watch page
     /// - returns: playability status and reason of the video
-    class func playabilityStatus(watchHTML: String) throws -> (InitialPlayerResponse.PlayabilityStatus.Status?, [String?]) {
+    class func playabilityStatus(watchHTML: String) throws -> (InitialPlayerResponse.PlayabilityStatus.Status?, [String]) {
         let playerResponse = try initialPlayerResponse(watchHTML: watchHTML)
         let status = playerResponse.playabilityStatus
         if status?.liveStreamability != nil {
             return (.liveStream, ["Video is a live stream"])
-        } else if let currentStatus = status?.status {
-            if let reason = status?.reason {
-                return (currentStatus, [reason])
-            } else if let messages = status?.messages {
-                return (currentStatus, messages)
-            }
         }
-        return (nil, [nil])
+        let interstitial = status?.errorScreen?.playerInterstitialRenderer?.content?.interstitialViewModel
+        let messages = [status?.reason, interstitial?.title?.content, interstitial?.description?.content].compactMap { $0 }
+            + (status?.messages ?? [])
+        return (status?.status, messages.removeDuplicates())
     }
     
     /// Extracts the signature timestamp (sts) from javascript.
@@ -313,6 +310,28 @@ class Extraction {
             let reason: String?
             let messages: [String]?
             let liveStreamability: LiveStreamabilityRenderer?
+            let errorScreen: ErrorScreen?
+
+            struct ErrorScreen: Decodable {
+                let playerInterstitialRenderer: PlayerInterstitialRenderer?
+
+                struct PlayerInterstitialRenderer: Decodable {
+                    let content: Content?
+
+                    struct Content: Decodable {
+                        let interstitialViewModel: InterstitialViewModel?
+
+                        struct InterstitialViewModel: Decodable {
+                            let title: Text?
+                            let description: Text?
+
+                            struct Text: Decodable {
+                                let content: String?
+                            }
+                        }
+                    }
+                }
+            }
 
             enum Status: String, Decodable {
                 case ok = "OK"
