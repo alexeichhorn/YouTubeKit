@@ -133,27 +133,26 @@ public class YouTube {
     public func checkAvailability() async throws {
         let (status, messages) = try Extraction.playabilityStatus(watchHTML: await watchHTML)
 
-        for reason in messages {
-            switch status {
-            case .unplayable:
-                if reason?.starts(with: "Join this channel to get access to members-only content") ?? false { // TODO: original compared to tuple
-                    throw YouTubeKitError.membersOnly
-                }
-            case .loginRequired:
-                if reason.map({ $0.starts(with: "This is a private video") || $0.starts(with: "This video is private") }) ?? false { // TODO: original: reason == ["This is a private video. ", "Please sign in to verify that you may see it."] {
-                    throw YouTubeKitError.videoPrivate
-                }
-            case .error:
-                throw YouTubeKitError.videoUnavailable
-            case .liveStream:
-                let streamingData = try await videoInfos.map { $0.streamingData }
-                if streamingData.allSatisfy({ $0?.hlsManifestUrl == nil }) {
-                    throw YouTubeKitError.liveStreamError
-                }
-                continue
-            case .ok, .none:
-                continue
+        switch status {
+        case .unplayable:
+            if messages.contains(where: { $0.starts(with: "Join this channel to get access to members-only content") }) {
+                throw YouTubeKitError.membersOnly
             }
+        case .loginRequired:
+            if messages.contains(where: {
+                $0 == "Private video" || $0.starts(with: "This is a private video") || $0.starts(with: "This video is private")
+            }) {
+                throw YouTubeKitError.videoPrivate
+            }
+        case .error:
+            throw YouTubeKitError.videoUnavailable
+        case .liveStream:
+            let streamingData = try await videoInfos.map { $0.streamingData }
+            if streamingData.allSatisfy({ $0?.hlsManifestUrl == nil }) {
+                throw YouTubeKitError.liveStreamError
+            }
+        case .ok, .none:
+            break
         }
     }
     
@@ -361,7 +360,7 @@ public class YouTube {
             let signatureTimestamp = try await signatureTimestamp
             let ytcfg = try await ytcfg
             
-            let innertubeClients: [InnerTube.ClientType] = [.visionOS, .web]
+            let innertubeClients: [InnerTube.ClientType] = [.tvSamsung, .visionOS, .web]
             
             let results: [Result<InnerTube.VideoInfo, Error>] = await innertubeClients.concurrentMap { [videoID, useOAuth, allowOAuthCache] client in
                 let innertube = InnerTube(client: client, signatureTimestamp: signatureTimestamp, ytcfg: ytcfg, useOAuth: useOAuth, allowCache: allowOAuthCache)
