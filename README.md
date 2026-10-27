@@ -58,10 +58,13 @@ let stream = try await YouTube(videoID: "QdBZY2fkU-0").streams
                           .filter { $0.isNativelyPlayable }
                           .highestResolutionStream()
 
+try await stream!.waitUntilAvailable()
 let player = AVPlayer(url: stream!.url)
 // -> Now present the player however you like
 ```
 The `isNativelyPlayable` parameter is used to filter only streams that are natively decodable on the current operating system and device.
+
+**Note:** For videos with preroll ads, YouTube may only serve a stream after a short waiting period (usually a few seconds). Requesting the url too early can make it fail with 403 for the url's whole lifetime. Call `waitUntilAvailable()` (or check `availableAt`) before your first request, e.g. before playing or downloading. It returns immediately if the stream is already available.
 
 
 ### Example 2
