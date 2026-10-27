@@ -64,7 +64,7 @@ let player = AVPlayer(url: stream!.url)
 ```
 The `isNativelyPlayable` parameter is used to filter only streams that are natively decodable on the current operating system and device.
 
-**Note:** For videos with preroll ads, YouTube may only serve a stream after a short waiting period (usually a few seconds). Requesting the url too early can make it fail with 403 for the url's whole lifetime. Call `waitUntilAvailable()` (or check `availableAt`) before your first request, e.g. before playing or downloading. It returns immediately if the stream is already available.
+**Note:** For videos with preroll ads, YouTube may only serve a stream after a short waiting period (usually a few seconds). Requests before then fail with 403. Call `waitUntilAvailable()` (or check `availableAt`) before your first request, e.g. before playing or downloading. It returns immediately if the stream is already available.
 
 
 ### Example 2
