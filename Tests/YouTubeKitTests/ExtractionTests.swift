@@ -50,7 +50,8 @@ final class ExtractionTests: XCTestCase {
             {
                 "adPlacements": [
                     {"adPlacementRenderer": {"config": {"adPlacementConfig": {"kind": "AD_PLACEMENT_KIND_START"}}, "renderer": {"instreamVideoAdRenderer": {"skipOffsetMilliseconds": 5000, "playerVars": "length_seconds=15"}}}},
-                    {"adPlacementRenderer": {"config": {"adPlacementConfig": {"kind": "AD_PLACEMENT_KIND_END"}}, "renderer": {"adBreakServiceRenderer": {}}}}
+                    {"adPlacementRenderer": {"config": {"adPlacementConfig": {"kind": "AD_PLACEMENT_KIND_END"}}, "renderer": {"adBreakServiceRenderer": {}}}},
+                    {"unknownPlacementRenderer": {}}
                 ],
                 "adSlots": [
                     {"adSlotRenderer": {"adSlotMetadata": {"triggerEvent": "SLOT_TRIGGER_EVENT_BEFORE_CONTENT"}, "fulfillmentContent": {"fulfilledLayout": {"playerBytesAdLayoutRenderer": {"renderingContent": {"instreamVideoAdRenderer": {"playerVars": "foo=bar&length_seconds=6"}}}}}}},

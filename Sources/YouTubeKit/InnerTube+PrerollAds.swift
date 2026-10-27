@@ -18,17 +18,17 @@ extension InnerTube.VideoInfo {
 
     var prerollWaitDuration: TimeInterval {
         let slotAds = (adSlots ?? [])
-            .filter { $0.adSlotRenderer.adSlotMetadata?.triggerEvent == "SLOT_TRIGGER_EVENT_BEFORE_CONTENT" }
-            .flatMap { $0.adSlotRenderer.fulfillmentContent?.fulfilledLayout?.playerBytesAdLayoutRenderer?.renderingContent?.videoAds ?? [] }
+            .filter { $0.adSlotRenderer?.adSlotMetadata?.triggerEvent == "SLOT_TRIGGER_EVENT_BEFORE_CONTENT" }
+            .flatMap { $0.adSlotRenderer?.fulfillmentContent?.fulfilledLayout?.playerBytesAdLayoutRenderer?.renderingContent?.videoAds ?? [] }
         let placementAds = (adPlacements ?? [])
-            .filter { $0.adPlacementRenderer.config?.adPlacementConfig?.kind == "AD_PLACEMENT_KIND_START" }
-            .compactMap { $0.adPlacementRenderer.renderer?.instreamVideoAdRenderer }
+            .filter { $0.adPlacementRenderer?.config?.adPlacementConfig?.kind == "AD_PLACEMENT_KIND_START" }
+            .compactMap { $0.adPlacementRenderer?.renderer?.instreamVideoAdRenderer }
         return (slotAds + placementAds).map(\.waitDuration).reduce(0, +)
     }
 
     /// Ad format of web clients.
     struct AdSlot: Decodable {
-        let adSlotRenderer: Renderer
+        let adSlotRenderer: Renderer?
 
         struct Renderer: Decodable {
             let adSlotMetadata: Metadata?
@@ -69,7 +69,7 @@ extension InnerTube.VideoInfo {
 
     /// Ad format of TV clients.
     struct AdPlacement: Decodable {
-        let adPlacementRenderer: Renderer
+        let adPlacementRenderer: Renderer?
 
         struct Renderer: Decodable {
             let config: Config?
