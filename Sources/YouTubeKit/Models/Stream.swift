@@ -95,6 +95,9 @@ public struct Stream: Sendable {
         self.averageBitrate = remoteStream.averageBitrate
         self.filesize = remoteStream.filesize
         
+        #warning("TODO: YouTubeKit-Server must send the preroll waiting period per stream (https://github.com/alexeichhorn/YouTubeKit/issues/94). Until then remote streams count as available immediately.")
+        self.availableAt = Date()
+        
         // Backward compatibility for deprecated `subtype` and `mimeType`
         self.type = (remoteStream.videoCodec != nil) ? "video" : "audio"
         self.subtype = ""
