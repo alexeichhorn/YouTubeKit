@@ -238,13 +238,15 @@ public class YouTube {
                 switch method {
 #if canImport(JavaScriptCore)
                 case .local:
-                    let allStreamingData = try await self.streamingData
+                    // loads fallback clients if the default ones returned no streaming data
+                    _ = try await self.streamingData
                     let videoInfos = try await self.videoInfos
                     
                     var streams = [Stream]()
                     var existingITags = Set<Int>()
                     
-                    func process(streamingData: InnerTube.StreamingData, videoInfo: InnerTube.VideoInfo) async throws {
+                    func process(videoInfo: InnerTube.VideoInfo) async throws {
+                        guard let streamingData = videoInfo.streamingData else { return }
                         
                         var streamManifest = Extraction.applyDescrambler(streamData: streamingData)
                         
@@ -272,15 +274,15 @@ public class YouTube {
                         }
                     }
                     
-                    for (streamingData, videoInfo) in zip(allStreamingData, videoInfos) {
-                        try await process(streamingData: streamingData, videoInfo: videoInfo)
+                    for videoInfo in videoInfos {
+                        try await process(videoInfo: videoInfo)
                     }
                     
                     // if no progressive (audio+video) tracks were found, try to do one more call to maybe get them
                     if !streams.contains(where: { $0.includesVideoAndAudioTrack }) {
-                        if let videoInfo = try? await loadAdditionalVideoInfos(forClient: .mediaConnectFrontend), let streamingData = videoInfo.streamingData {
+                        if let videoInfo = try? await loadAdditionalVideoInfos(forClient: .mediaConnectFrontend), videoInfo.streamingData != nil {
                             os_log("Found no progressive streams. Called mediaConnectFrontend client to get additional video infos", log: log, type: .info)
-                            try await process(streamingData: streamingData, videoInfo: videoInfo)
+                            try await process(videoInfo: videoInfo)
                         }
                     }
                     
