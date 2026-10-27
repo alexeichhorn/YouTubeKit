@@ -51,7 +51,8 @@ final class ExtractionTests: XCTestCase {
                 "adPlacements": [
                     {"adPlacementRenderer": {"config": {"adPlacementConfig": {"kind": "AD_PLACEMENT_KIND_START"}}, "renderer": {"instreamVideoAdRenderer": {"skipOffsetMilliseconds": 5000, "playerVars": "length_seconds=15"}}}},
                     {"adPlacementRenderer": {"config": {"adPlacementConfig": {"kind": "AD_PLACEMENT_KIND_END"}}, "renderer": {"adBreakServiceRenderer": {}}}},
-                    {"unknownPlacementRenderer": {}}
+                    {"unknownPlacementRenderer": {}},
+                    {"adPlacementRenderer": {"config": {"adPlacementConfig": {"kind": "AD_PLACEMENT_KIND_START"}}, "renderer": {"linearAdSequenceRenderer": {"linearAds": [{"instreamVideoAdRenderer": {"skipOffsetMilliseconds": 2000}}, {"instreamVideoAdRenderer": {"playerVars": "length_seconds=3"}}]}}}}
                 ],
                 "adSlots": [
                     {"adSlotRenderer": {"adSlotMetadata": {"triggerEvent": "SLOT_TRIGGER_EVENT_BEFORE_CONTENT"}, "fulfillmentContent": {"fulfilledLayout": {"playerBytesAdLayoutRenderer": {"renderingContent": {"instreamVideoAdRenderer": {"playerVars": "foo=bar&length_seconds=6"}}}}}}},
@@ -65,7 +66,7 @@ final class ExtractionTests: XCTestCase {
         ]
         """#
         let videoInfos = try JSONDecoder().decode([InnerTube.VideoInfo].self, from: Data(json.utf8))
-        XCTAssertEqual(videoInfos.map(\.prerollWaitDuration), [11, 0])
+        XCTAssertEqual(videoInfos.map(\.prerollWaitDuration), [16, 0])
         XCTAssertEqual(videoInfos[1].videoDetails?.videoId, "abc")
     }
 

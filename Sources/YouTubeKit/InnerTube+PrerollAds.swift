@@ -22,7 +22,7 @@ extension InnerTube.VideoInfo {
             .flatMap { $0.adSlotRenderer?.fulfillmentContent?.fulfilledLayout?.playerBytesAdLayoutRenderer?.renderingContent?.videoAds ?? [] }
         let placementAds = (adPlacements ?? [])
             .filter { $0.adPlacementRenderer?.config?.adPlacementConfig?.kind == "AD_PLACEMENT_KIND_START" }
-            .compactMap { $0.adPlacementRenderer?.renderer?.instreamVideoAdRenderer }
+            .flatMap { $0.adPlacementRenderer?.renderer?.videoAds ?? [] }
         return (slotAds + placementAds).map(\.waitDuration).reduce(0, +)
     }
 
@@ -86,6 +86,16 @@ extension InnerTube.VideoInfo {
 
         struct Content: Decodable {
             let instreamVideoAdRenderer: VideoAd?
+            let linearAdSequenceRenderer: LinearAdSequence?
+
+            var videoAds: [VideoAd] {
+                [instreamVideoAdRenderer].compactMap { $0 } + (linearAdSequenceRenderer?.linearAds?.compactMap(\.instreamVideoAdRenderer) ?? [])
+            }
+        }
+
+        /// Several ads in a row; the TV player supports it, but it hasn't been seen in real responses yet.
+        struct LinearAdSequence: Decodable {
+            let linearAds: [Content]?
         }
     }
 
