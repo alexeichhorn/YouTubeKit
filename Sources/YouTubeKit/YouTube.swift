@@ -400,11 +400,6 @@ public class YouTube {
                 throw errors.first ?? YouTubeKitError.extractError
             }
             
-            // clients without preroll ads first, so their immediately playable streams win the itag deduplication
-            videoInfos = videoInfos.enumerated()
-                .sorted { ($0.element.prerollWaitDuration, $0.offset) < ($1.element.prerollWaitDuration, $1.offset) }
-                .map(\.element)
-            
             _videoInfos = videoInfos
             return videoInfos
         }
