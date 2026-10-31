@@ -44,6 +44,32 @@ final class ExtractionTests: XCTestCase {
         XCTAssertEqual(formats.compactMap(\.url), ["https://example.com/clear-video", "https://example.com/clear-audio"])
     }
 
+    func testPrerollWaitDurationReadsAdsAndIgnoresUnexpectedAdFormats() throws {
+        let json = #"""
+        [
+            {
+                "adPlacements": [
+                    {"adPlacementRenderer": {"config": {"adPlacementConfig": {"kind": "AD_PLACEMENT_KIND_START"}}, "renderer": {"instreamVideoAdRenderer": {"skipOffsetMilliseconds": 5000, "playerVars": "length_seconds=15"}}}},
+                    {"adPlacementRenderer": {"config": {"adPlacementConfig": {"kind": "AD_PLACEMENT_KIND_END"}}, "renderer": {"adBreakServiceRenderer": {}}}},
+                    {"unknownPlacementRenderer": {}},
+                    {"adPlacementRenderer": {"config": {"adPlacementConfig": {"kind": "AD_PLACEMENT_KIND_START"}}, "renderer": {"linearAdSequenceRenderer": {"linearAds": [{"instreamVideoAdRenderer": {"skipOffsetMilliseconds": 2000}}, {"instreamVideoAdRenderer": {"playerVars": "length_seconds=3"}}]}}}}
+                ],
+                "adSlots": [
+                    {"adSlotRenderer": {"adSlotMetadata": {"triggerEvent": "SLOT_TRIGGER_EVENT_BEFORE_CONTENT"}, "fulfillmentContent": {"fulfilledLayout": {"playerBytesAdLayoutRenderer": {"renderingContent": {"instreamVideoAdRenderer": {"playerVars": "foo=bar&length_seconds=6"}}}}}}},
+                    {"adSlotRenderer": {"adSlotMetadata": {"triggerEvent": "SLOT_TRIGGER_EVENT_LAYOUT_ID_ENTERED"}}}
+                ]
+            },
+            {
+                "videoDetails": {"videoId": "abc", "thumbnail": {"thumbnails": []}},
+                "adSlots": "unexpected"
+            }
+        ]
+        """#
+        let videoInfos = try JSONDecoder().decode([InnerTube.VideoInfo].self, from: Data(json.utf8))
+        XCTAssertEqual(videoInfos.map(\.prerollWaitDuration), [16, 0])
+        XCTAssertEqual(videoInfos[1].videoDetails?.videoId, "abc")
+    }
+
     func testPlayabilityStatusReadsInterstitialErrors() throws {
         let cases: [(String, Extraction.InitialPlayerResponse.PlayabilityStatus.Status, [String])] = [
             (#"{"status":"LOGIN_REQUIRED","errorScreen":{"playerInterstitialRenderer":{"content":{"interstitialViewModel":{"title":{"content":"Private video"},"description":{"content":"Please sign in."}}}}}}"#, .loginRequired, ["Private video", "Please sign in."]),

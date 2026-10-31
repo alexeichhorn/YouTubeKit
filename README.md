@@ -59,6 +59,8 @@ let player = AVPlayer(playerItem: item)
 ```
 YouTubeKit automatically combines separate video and audio streams when needed. Pass `maxResolution` to limit the selected video resolution, for example `playerItem(maxResolution: 1080)`.
 
+**Note:** For videos with preroll ads, YouTube may only serve a stream after a short waiting period (usually a few seconds). Requests before then fail with 403. If you use a stream's `url` directly, call `waitUntilAvailable()` (or check `availableAt`) before your first request, e.g. before playing or downloading. It returns immediately if the stream is already available.
+
 
 ### Example 2
 To get the best m4a audio-only url for a given YouTube ID:
