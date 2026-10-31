@@ -18,6 +18,8 @@ struct RemoteStream: Decodable {
     let averageBitrate: Int?
     let audioBitrate: Int?
     let videoBitrate: Int?
+    let width: Int?
+    let height: Int?
     let filesize: Int?
 
     /// Wait from when the server sent the streams until `url` may be requested. Missing from older servers.

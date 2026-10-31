@@ -53,18 +53,11 @@ This will return a `YouTubeMetadata` object.
 ### Example 1
 To play a YouTube video in AVPlayer:
 ```swift
-let stream = try await YouTube(videoID: "QdBZY2fkU-0").streams
-                          .filterVideoAndAudio()
-                          .filter { $0.isNativelyPlayable }
-                          .highestResolutionStream()
-
-try await stream!.waitUntilAvailable()
-let player = AVPlayer(url: stream!.url)
+let item = try await YouTube(videoID: "QdBZY2fkU-0").playerItem()
+let player = AVPlayer(playerItem: item)
 // -> Now present the player however you like
 ```
-The `isNativelyPlayable` parameter is used to filter only streams that are natively decodable on the current operating system and device.
-
-**Note:** For videos with preroll ads, YouTube may only serve a stream after a short waiting period (usually a few seconds). Requests before then fail with 403. Call `waitUntilAvailable()` (or check `availableAt`) before your first request, e.g. before playing or downloading. It returns immediately if the stream is already available.
+YouTubeKit automatically combines separate video and audio streams when needed. Pass `maxResolution` to limit the selected video resolution, for example `playerItem(maxResolution: 1080)`.
 
 
 ### Example 2
@@ -75,8 +68,10 @@ let stream = try await YouTube(videoID: "9bZkp7q19f0").streams
                           .filter { $0.fileExtension == .m4a }
                           .highestAudioBitrateStream()
 
+try await stream.waitUntilAvailable()
 let streamURL = stream.url
 ```
+**Note:** For videos with preroll ads, YouTube may only serve a stream after a short waiting period (usually a few seconds). Requests before then fail with 403. Call `waitUntilAvailable()` (or check `availableAt`) before your first request, e.g. before playing or downloading. It returns immediately if the stream is already available.
 
 
 ### Example 3
@@ -98,6 +93,19 @@ let hlsManifestUrl = try await YouTube(videoID: "21X5lGlDOfg").livestreams
                           .filter { $0.streamType == .hls }
                           .first
 ```
+
+
+### Example 5
+To get the highest-resolution natively playable video-only URL:
+```swift
+let stream = try await YouTube(videoID: "QdBZY2fkU-0").streams
+                          .filterVideoOnly()
+                          .filter { $0.isNativelyPlayable }
+                          .highestResolutionStream()
+
+let videoURL = stream?.url
+```
+The `isNativelyPlayable` property filters out streams whose codecs cannot be decoded natively on the current operating system and device. Video-only streams do not include audio.
 
 
 ## Remote Fallback

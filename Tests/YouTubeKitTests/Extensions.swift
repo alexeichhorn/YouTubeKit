@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import Testing
 @testable import YouTubeKit
 
 //XCTAssertNoThrow<T>(_ expression: @autoclosure () throws -> T, _ message: @autoclosure () -> String = "", file: StaticString = #filePath, line: UInt = #line)
@@ -21,4 +22,25 @@ func XCTAssertNoThrow<T>(_ expression: @autoclosure () async throws -> T, _ mess
 
 func XCTAssertHighestResolutionStreamAtLeastHD(_ streams: [YouTubeKit.Stream], file: StaticString = #filePath, line: UInt = #line) {
     XCTAssert((streams.highestResolutionStream()?.videoResolution ?? 0) >= 720, file: file, line: line)
+}
+
+@available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
+func XCTAssertLiveContent(_ youtube: YouTube, _ expected: Bool, file: StaticString = #filePath, line: UInt = #line) async {
+    do {
+        let isLiveContent = try await youtube.isLiveContent
+        XCTAssertEqual(isLiveContent, expected, file: file, line: line)
+    } catch {
+        XCTFail("Live content check threw error: \(error)", file: file, line: line)
+    }
+}
+
+extension YouTube.ExtractionMethod: CustomTestStringConvertible {
+    public var testDescription: String {
+        switch self {
+#if canImport(JavaScriptCore)
+        case .local: ".local"
+#endif
+        case .remote: ".remote"
+        }
+    }
 }

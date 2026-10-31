@@ -6,6 +6,7 @@ final class YouTubeKitTests: XCTestCase {
     
     func testVideoUnavailable() async {
         let youtube = YouTube(videoID: "cTsNJNx7plQ")
+        await XCTAssertLiveContent(youtube, false)
         do {
             try await youtube.checkAvailability()
             XCTFail("Expected throw")
@@ -16,6 +17,7 @@ final class YouTubeKitTests: XCTestCase {
     
     func testVideoAvailable() async {
         let youtube = YouTube(videoID: "9bZkp7q19f0")
+        await XCTAssertLiveContent(youtube, false)
         do {
             try await youtube.checkAvailability()
         } catch let error {
@@ -25,6 +27,7 @@ final class YouTubeKitTests: XCTestCase {
     
     func testSampleVideo1() async {
         let youtube = YouTube(videoID: "9bZkp7q19f0")
+        await XCTAssertLiveContent(youtube, false)
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
@@ -49,6 +52,7 @@ final class YouTubeKitTests: XCTestCase {
     
     func testSampleVideo2() async {
         let youtube = YouTube(videoID: "ZFoNBxpXen4")
+        await XCTAssertLiveContent(youtube, false)
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
@@ -71,6 +75,7 @@ final class YouTubeKitTests: XCTestCase {
     
     func testSampleVideo3() async {
         let youtube = YouTube(videoID: "dkpDjd2nHgo", methods: [.remote])
+        await XCTAssertLiveContent(youtube, false)
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
@@ -79,7 +84,7 @@ final class YouTubeKitTests: XCTestCase {
             print(streams.count)
             //print(streams.filterAudioOnly().filter { $0.subtype == "mp4" }.highestAudioBitrateStream()?.url)
             //print(streams.filterVideoOnly().highestResolutionStream())
-            print(streams.filter { $0.isProgressive && $0.fileExtension == .mp4 }.lowestResolutionStream()!)
+            //print(streams.filter { $0.isProgressive && $0.fileExtension == .mp4 }.lowestResolutionStream()!)
             
             XCTAssert(!streams.filterVideoOnly().isEmpty)
             XCTAssert(!streams.filterAudioOnly().isEmpty)
@@ -95,6 +100,7 @@ final class YouTubeKitTests: XCTestCase {
     
     func testSampleVideo4() async {
         let youtube = YouTube(videoID: "NOid0U6GxUA") // non-music video
+        await XCTAssertLiveContent(youtube, false)
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
@@ -117,6 +123,7 @@ final class YouTubeKitTests: XCTestCase {
     
     func testSampleVideo5() async {
         let youtube = YouTube(videoID: "ObUBUKOn-bo")
+        await XCTAssertLiveContent(youtube, false)
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
@@ -135,6 +142,7 @@ final class YouTubeKitTests: XCTestCase {
     
     func testSampleVideo6() async {
         let youtube = YouTube(videoID: "jmIpv3ftEVM")
+        await XCTAssertLiveContent(youtube, false)
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
@@ -153,6 +161,7 @@ final class YouTubeKitTests: XCTestCase {
     
     func testSampleVideoAgeRestricted() async {
         let youtube = YouTube(videoID: "HtVdAasjOgU") // EX_8ZjT2sO4
+        await XCTAssertLiveContent(youtube, false)
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
@@ -174,6 +183,7 @@ final class YouTubeKitTests: XCTestCase {
     
     func testSampleVideoAgeRestrictedRemote() async {
         let youtube = YouTube(videoID: "HtVdAasjOgU", methods: [.remote])
+        await XCTAssertLiveContent(youtube, false)
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
@@ -193,6 +203,7 @@ final class YouTubeKitTests: XCTestCase {
 
     func testSampleVideoMadeForKids() async {
         let youtube = YouTube(videoID: "GObpYg_NjLQ") // "Made for kids" video
+        await XCTAssertLiveContent(youtube, false)
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
@@ -211,6 +222,7 @@ final class YouTubeKitTests: XCTestCase {
 
     func testSampleVideoMadeForKidsRemote() async {
         let youtube = YouTube(videoID: "GObpYg_NjLQ", methods: [.remote]) // "Made for kids" video
+        await XCTAssertLiveContent(youtube, false)
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
@@ -229,6 +241,7 @@ final class YouTubeKitTests: XCTestCase {
 
     func testLivestreamHlsManifestUrl() async {
         let youtube = YouTube(videoID: "tj4knR4r1UU")
+        await XCTAssertLiveContent(youtube, true)
         do {
             let livestreams = try await youtube.livestreams
             XCTAssert(livestreams.count > 0)
@@ -242,6 +255,7 @@ final class YouTubeKitTests: XCTestCase {
     
     func testLivestreamHlsManifestUrlRemote() async {
         let youtube = YouTube(videoID: "tj4knR4r1UU", methods: [.remote])
+        await XCTAssertLiveContent(youtube, true)
         do {
             let livestreams = try await youtube.livestreams
             XCTAssert(livestreams.count > 0)
@@ -255,6 +269,7 @@ final class YouTubeKitTests: XCTestCase {
     
     func testRemoteExtraction() async {
         let youtube = YouTube(videoID: "dQw4w9WgXcQ", methods: [.remote])
+        await XCTAssertLiveContent(youtube, false)
         do {
             let streams = try await youtube.streams
             XCTAssert(streams.count > 0)
@@ -276,10 +291,12 @@ final class YouTubeKitTests: XCTestCase {
     
     func testMetadataForOnDemand() async {
         let youtube = YouTube(videoID: "ApM_KEr1ktQ")
+        await XCTAssertLiveContent(youtube, false)
         do {
             let metadata = try await youtube.metadata!
             XCTAssertEqual(metadata.title, "Le Maroc Vu du Ciel (Documentaire de Yann Arthus-Bertrand)")
             XCTAssertFalse(metadata.description.isEmpty)
+            XCTAssertEqual(metadata.duration, (60+19)*60+34)
             XCTAssert([URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/sddefault.jpg")!, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/hqdefault.jpg")!, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/hq720.jpg")!].contains(metadata.thumbnail!.url))
         } catch let error {
             XCTFail("did throw error: \(error)")
@@ -288,10 +305,12 @@ final class YouTubeKitTests: XCTestCase {
     
     func testMetadataForOnDemandWithRemote() async {
         let youtube = YouTube(videoID: "ApM_KEr1ktQ", methods: [.remote])
+        await XCTAssertLiveContent(youtube, false)
         do {
             let metadata = try await youtube.metadata!
             XCTAssertEqual(metadata.title, "Le Maroc Vu du Ciel (Documentaire de Yann Arthus-Bertrand)")
             XCTAssertFalse(metadata.description.isEmpty)
+            XCTAssertEqual(metadata.duration, (60+19)*60+34)
             XCTAssert([URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/sddefault.jpg")!, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/hqdefault.jpg")!, URL(string: "https://i.ytimg.com/vi/ApM_KEr1ktQ/hq720.jpg")!].contains(metadata.thumbnail!.url))
         } catch let error {
             XCTFail("did throw error: \(error)")
@@ -300,6 +319,7 @@ final class YouTubeKitTests: XCTestCase {
     
     func testMetadataForLive() async {
         let youtube = YouTube(videoID: "LuKwFajn37U")
+        await XCTAssertLiveContent(youtube, true)
         do {
             let metadata = try await youtube.metadata!
             XCTAssertEqual(metadata.title, "DW News livestream | Headline news from around the world")

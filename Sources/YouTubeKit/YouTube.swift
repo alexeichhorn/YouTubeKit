@@ -111,6 +111,13 @@ public class YouTube {
             return _watchHTML!
         }
     }
+
+    var isLiveContent: Bool {
+        get async throws {
+            let (status, _) = try Extraction.playabilityStatus(watchHTML: await watchHTML)
+            return status == .liveStream
+        }
+    }
     
     private var embedHTML: String {
         get async throws {
@@ -146,12 +153,7 @@ public class YouTube {
             }
         case .error:
             throw YouTubeKitError.videoUnavailable
-        case .liveStream:
-            let streamingData = try await videoInfos.map { $0.streamingData }
-            if streamingData.allSatisfy({ $0?.hlsManifestUrl == nil }) {
-                throw YouTubeKitError.liveStreamError
-            }
-        case .ok, .none:
+        case .liveStream, .ok, .none:
             break
         }
     }
