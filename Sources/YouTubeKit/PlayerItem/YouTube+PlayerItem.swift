@@ -15,6 +15,7 @@ extension YouTube {
     /// Returns video+audio `AVPlayerItem` for the highest resolution stream that is natively playable with potentially audio and video automatically combined.
     /// This means it will have most of the time higher resolution and bitrate than from a single `.streams.filterVideoAndAudio()` stream alone.
     /// - Parameter maxResolution: The maximum resolution of the video stream. If `nil`, the highest resolution stream is used.
+    /// - Note: Might take a few seconds longer for videos with preroll ads, as their streams are only served after a short waiting period.
     @available(iOS 15.0, watchOS 8.0, tvOS 15.0, macOS 12.0, *)
     public func playerItem(maxResolution: Int? = nil) async throws -> AVPlayerItem {
         // For livestreams: use the direct url
@@ -47,6 +48,7 @@ extension YouTube {
         if let bestCombinedStream {
             if videoStream == nil || (bestCombinedStream.videoResolution ?? 0) >= (videoStream?.videoResolution ?? 0) {
                 os_log("Using already combined stream for %{public}@", log: OSLog(category: "YouTube+PlayerItem"), type: .info, videoID)
+                try await bestCombinedStream.waitUntilAvailable()
                 return AVPlayerItem(asset: AVURLAsset(url: bestCombinedStream.url))
             }
         }
@@ -54,6 +56,10 @@ extension YouTube {
         guard let videoStream, let audioStream else {
             throw YouTubeKitError.extractError
         }
+
+        // streams of videos with preroll ads fail with 403 until available
+        try await videoStream.waitUntilAvailable()
+        try await audioStream.waitUntilAvailable()
 
         let metadataDuration = try await metadata?.duration
         let videoDuration = metadataDuration.flatMap { $0 > 0 ? $0 : nil }
