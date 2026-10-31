@@ -186,6 +186,25 @@ class InnerTube {
         let playabilityStatus: PlayabilityStatus?
         let streamingData: StreamingData?
         let videoDetails: VideoDetails?
+        let adSlots: [AdSlot]?
+        let adPlacements: [AdPlacement]?
+        /// YouTube counts the preroll waiting period from when it sent this response.
+        let receivedAt: Date
+
+        private enum CodingKeys: String, CodingKey {
+            case playabilityStatus, streamingData, videoDetails, adSlots, adPlacements
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            playabilityStatus = try container.decodeIfPresent(PlayabilityStatus.self, forKey: .playabilityStatus)
+            streamingData = try container.decodeIfPresent(StreamingData.self, forKey: .streamingData)
+            videoDetails = try container.decodeIfPresent(VideoDetails.self, forKey: .videoDetails)
+            // ads only delay stream availability, so an unexpected ad format must not break extraction
+            adSlots = try? container.decodeIfPresent([AdSlot].self, forKey: .adSlots)
+            adPlacements = try? container.decodeIfPresent([AdPlacement].self, forKey: .adPlacements)
+            receivedAt = Date()
+        }
 
         struct PlayabilityStatus: Decodable {
             let status: String?

@@ -31,7 +31,11 @@ public struct Stream: Sendable {
     
     private let filesize: Int?
     
-    init(format: InnerTube.StreamingData.Format) throws {
+    /// Earliest time YouTube serves `url`. A request before that can fail with 403 for the lifetime of the URL,
+    /// so call `waitUntilAvailable()` before requesting `url` yourself.
+    public let availableAt: Date
+    
+    init(format: InnerTube.StreamingData.Format, availableAt: Date) throws {
         guard let url = format.url.flatMap({ URL(string: $0) }),
               let itag = ITag(format.itag) else {
             throw YouTubeKitError.extractError
@@ -68,6 +72,7 @@ public struct Stream: Sendable {
         self.bitrate = format.bitrate
         self.averageBitrate = format.averageBitrate
         self.filesize = format.contentLength.flatMap { Int($0) }
+        self.availableAt = availableAt
     }
     
     init(remoteStream: RemoteStream) throws {
@@ -89,6 +94,9 @@ public struct Stream: Sendable {
         self.bitrate = remoteStream.videoBitrate ?? remoteStream.audioBitrate
         self.averageBitrate = remoteStream.averageBitrate
         self.filesize = remoteStream.filesize
+        
+        // created right after the streams arrive, so latency only makes this later than needed
+        self.availableAt = Date().addingTimeInterval(TimeInterval(remoteStream.availableInMs ?? 0) / 1000)
         
         // Backward compatibility for deprecated `subtype` and `mimeType`
         self.type = (remoteStream.videoCodec != nil) ? "video" : "audio"
@@ -130,6 +138,13 @@ public struct Stream: Sendable {
     /// Whether the stream can be played inside the native `AVPlayer`
     public var isNativelyPlayable: Bool {
         (videoCodec?.isNativelyPlayable ?? true) && (audioCodec?.isNativelyPlayable ?? true)
+    }
+    
+    /// Suspends until `availableAt`. Returns immediately if the stream is already available.
+    public func waitUntilAvailable() async throws {
+        let delay = availableAt.timeIntervalSinceNow
+        guard delay > 0 else { return }
+        try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
     }
     
     /// smaller pixel size of resolution (e.g. 1080 for 1080p)
