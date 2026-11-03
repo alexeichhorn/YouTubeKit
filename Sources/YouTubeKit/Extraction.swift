@@ -237,54 +237,44 @@ class Extraction {
     
     /// Parses input html to find the end of a JavaScript object.
     class func findObjectFromStartpoint(html fullHTML: String, startPoint: String.Index) throws -> String {
-        let html = String(fullHTML[startPoint...])
-        guard ["{", "["].contains(html.first ?? " ") else {
+        // JSON punctuation is ASCII. Swift Character can combine a quote with a following
+        // Unicode combining mark, so scanning grapheme clusters loses string boundaries.
+        let bytes = Array(fullHTML[startPoint...].utf8)
+        guard let first = bytes.first, first == 0x7B || first == 0x5B else {
             throw YouTubeKitError.htmlParseError
         }
-        
-        var stack = [html.first!]
-        var i = html.index(after: html.startIndex)
-        
-        let contextClosers: [Character: Character] = [
-            "{": "}",
-            "[": "]",
-            "\"": "\""
-        ]
-        
-        let endIndex = html.endIndex
-        while i < endIndex {
-            guard let currentContext = stack.last else {
-                break
-            }
-            let currentChar = html[i]
-            
-            // current context gets closed
-            if currentChar == contextClosers[currentContext] {
-                _ = stack.popLast()
-                i = html.index(after: i)
+
+        var closers: [UInt8] = [first == 0x7B ? 0x7D : 0x5D]
+        var inString = false
+        var escaped = false
+        for i in bytes.indices.dropFirst() {
+            let byte = bytes[i]
+            if inString {
+                if escaped {
+                    escaped = false
+                } else if byte == 0x5C { // backslash
+                    escaped = true
+                } else if byte == 0x22 { // quote
+                    inString = false
+                }
                 continue
             }
-            
-            // strings require special context handling because they can contain context openers and closers
-            if currentContext == "\"" {
-                if currentChar == "\\" {
-                    i = html.index(i, offsetBy: 2)
-                    continue
+            switch byte {
+            case 0x22: inString = true
+            case 0x7B: closers.append(0x7D) // {
+            case 0x5B: closers.append(0x5D) // [
+            case 0x7D, 0x5D:
+                guard closers.last == byte else { throw YouTubeKitError.htmlParseError }
+                closers.removeLast()
+                if closers.isEmpty {
+                    return String(decoding: bytes[...i], as: UTF8.self)
                 }
-            } else {
-                // non-string contexts are when we need to look for context openers
-                if contextClosers.keys.contains(currentChar) {
-                    stack.append(currentChar)
-                }
+            default: break
             }
-            
-            i = html.index(after: i)
         }
-        
-        let fullObject = String(html[..<i])
-        return fullObject
+        throw YouTubeKitError.htmlParseError
     }
-    
+
     /// JSONifies an object parsed from HTML.
     /// - parameter html: HTML to be parsed for an object
     /// - parameter startPoint: Index of where the object starts
