@@ -25,7 +25,11 @@ class SignatureSolver {
     private let solveLock = NSLock()
 
     private static let cacheLock = NSLock()
+#if swift(>=5.10)
     nonisolated(unsafe) private static var cachedSolver: SignatureSolver?
+#else
+    private static var cachedSolver: SignatureSolver?
+#endif
 
     /// Returns a shared solver for this player version, so the JS context is built and the player
     /// parsed once instead of for every extraction.
