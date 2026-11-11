@@ -208,6 +208,8 @@ struct NSigTests {
         }
     }
     
+    /// `SignatureSolver.cached(js:)` returns the same solver for the same player JS, and solving again
+    /// with the preprocessed player gives the same result as the first (parsing) solve.
     @Test func solverReusesParsedPlayerAndIsCached() async throws {
         let url = URL(string: "https://www.youtube.com/s/player/901741ab/tv-player-ias.vflset/tv-player-ias.js")!
         let js = try await downloadJavascript(fromURL: url)

@@ -170,6 +170,11 @@ class SignatureSolver {
         let sigMap: [String: String]
     }
     
+    /// Solves the given `n` and `sig` challenges against this solver's player.
+    ///
+    /// The first call parses the full player JS and keeps the preprocessed player yt-ejs returns;
+    /// later calls reuse it, which skips the expensive parse. Calls are serialized because the
+    /// underlying `JSContext` is not thread-safe.
     func batchSolve(request: SolveRequest) throws -> SolveResponse {
         // JSContext is not thread-safe, and the preprocessed player is shared state.
         solveLock.lock()
