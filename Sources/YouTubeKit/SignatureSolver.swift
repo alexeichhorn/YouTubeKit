@@ -18,6 +18,25 @@ class SignatureSolver {
     private let ctx: JSContext
     
     private let playerJS: String
+
+    /// The solver returns the parsed player on first use. Reusing it skips re-parsing the (multi-MB)
+    /// player JS on every call.
+    private var preprocessedPlayer: String?
+    private let solveLock = NSLock()
+
+    private static let cacheLock = NSLock()
+    nonisolated(unsafe) private static var cachedSolver: SignatureSolver?
+
+    /// Returns a shared solver for this player version, so the JS context is built and the player
+    /// parsed once instead of for every extraction.
+    static func cached(js: String) throws -> SignatureSolver {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        if let cachedSolver, cachedSolver.playerJS == js { return cachedSolver }
+        let solver = try SignatureSolver(js: js)
+        cachedSolver = solver
+        return solver
+    }
     
     init(js: String) throws {
         self.playerJS = js
@@ -148,6 +167,9 @@ class SignatureSolver {
     }
     
     func batchSolve(request: SolveRequest) throws -> SolveResponse {
+        // JSContext is not thread-safe, and the preprocessed player is shared state.
+        solveLock.lock()
+        defer { solveLock.unlock() }
 
         let requests = [
             Request(type: .n, challenges: request.nInputs),
@@ -155,14 +177,17 @@ class SignatureSolver {
         ]
 
         let input = Input(
-            type: .player,
-            player: self.playerJS,
-            preprocessed_player: nil,
+            type: preprocessedPlayer == nil ? .player : .preprocessedPlayer,
+            player: preprocessedPlayer == nil ? self.playerJS : nil,
+            preprocessed_player: preprocessedPlayer,
             requests: requests,
-            output_preprocessed: false
+            output_preprocessed: preprocessedPlayer == nil
         )
 
         let response = try solve(with: input)
+        if preprocessedPlayer == nil, let processed = response.preprocessed_player {
+            preprocessedPlayer = processed
+        }
 
         var nMap: [String: String] = [:]
         var sigMap: [String: String] = [:]

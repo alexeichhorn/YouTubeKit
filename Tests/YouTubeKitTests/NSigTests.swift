@@ -208,6 +208,20 @@ struct NSigTests {
         }
     }
     
+    @Test func solverReusesParsedPlayerAndIsCached() async throws {
+        let url = URL(string: "https://www.youtube.com/s/player/901741ab/tv-player-ias.vflset/tv-player-ias.js")!
+        let js = try await downloadJavascript(fromURL: url)
+        let solver = try SignatureSolver.cached(js: js)
+        #expect(try SignatureSolver.cached(js: js) === solver)
+
+        let request = SignatureSolver.SolveRequest(nInputs: ["BQoJvGBkC2nj1ZZLK-"], sigInputs: [])
+        // First solve parses the player; later solves reuse the preprocessed player and must agree.
+        let first = try solver.batchSolve(request: request)
+        let second = try solver.batchSolve(request: request)
+        #expect(first.nMap["BQoJvGBkC2nj1ZZLK-"] == "UMPovvBZRh-sjb")
+        #expect(second.nMap == first.nMap)
+    }
+
 }
 
 #endif
