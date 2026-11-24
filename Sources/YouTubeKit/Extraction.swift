@@ -27,21 +27,24 @@ class Extraction {
     /// Allows to override player id in case we have a (currently) unsolvable in the future
     private static let PLAYER_ID_OVERRIDE: String? = nil
     private static let PLAYER_STS_OVERRIDE: Int? = nil
+    /// Variant every player is fetched as, like yt-dlp's default (`tv` since 2026.11.23).
+    /// The page's own variant (e.g. `player_ias`, `player_ias_tcl`) can be unsolvable: as of player
+    /// b485e332 the `player_ias*` variants throw `a.addOnDisposeCallback is not a function` in the solver.
+    private static let PLAYER_JS_VARIANT_PATH = "/tv-player-ias.vflset/tv-player-ias.js"
 
     /// Get the base JavaScript url
     class func jsURL(html: String) throws -> String {
         let baseURL = try (try? getYTPlayerConfig(html: html).assets?.js)
                            ?? (try getYTPlayerJS(html: html))
 
-        // Replace potentially broken player ID with known working one
+        // Replace potentially broken player ID with known working one, and fetch the solvable variant
         // Format: /s/player/{PLAYER_ID}/{VARIANT_PATH}
         let playerIDPattern = NSRegularExpression(#"(/s/player/)([a-zA-Z0-9_]+)(/.*)"#)
-        if let PLAYER_ID_OVERRIDE,
-           let (_, groupMatches) = playerIDPattern.firstMatch(in: baseURL, includingGroups: [1, 2, 3]),
+        if let (_, groupMatches) = playerIDPattern.firstMatch(in: baseURL, includingGroups: [1, 2, 3]),
            let prefix = groupMatches[1]?.content,
-           let _ = groupMatches[2]?.content,
-           let suffix = groupMatches[3]?.content {
-            let fixedURL = prefix + PLAYER_ID_OVERRIDE + suffix
+           let playerID = groupMatches[2]?.content,
+           let _ = groupMatches[3]?.content {
+            let fixedURL = prefix + (PLAYER_ID_OVERRIDE ?? playerID) + PLAYER_JS_VARIANT_PATH
             guard let normalizedURL = URL(string: fixedURL, relativeTo: URL(string: "https://youtube.com"))?.absoluteURL else {
                 throw YouTubeKitError.regexMatchError
             }
